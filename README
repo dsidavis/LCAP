@@ -1,0 +1,22 @@
+867 different school districts and so that many documents.
+
+Initially looking for the Annual outcomes.
+These are in the tables with the row header Annual Outcomes.
+
+
+It takes some time to convert a pdf document to XML, but only needs to be done once.
+We can do these in parallel.
+So on a machine with 8 cores, we might be able to do 
+
+For pdf2txt, I did one 100 page document that was dense in text (a full text report, not a table)
+in 1.5 minutes. So 108 of these would take almost 3 hours, but all 867 would take about the
+same time in total when done in parallel. So probably no more than 4 hours.
+If dones sequentially, 22 hours.
+
+We also have to add on time to combine the individual symbols iinto sentences/phrases
+and dos some of the computations to merge the contents.
+For the 157 page Davis report, this took 11 seconds.
+So all 867 would be about 3 hours.
+
+Extracting the Annual Outcomes is essentially no time, i.e. .2 of a second for 157 pages.
+
