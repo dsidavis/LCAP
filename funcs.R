@@ -46,16 +46,41 @@ processGoal1 =
     # Called with output from getGoal1Nodes
 function(nodes)    
 {
-    txt = sapply(nodes, xmlValue)
+    txt = sapply(nodes, xmlValue)    
+    eamo = getEAMO(nodes, txt)
+    
     ends = grep("LCAP Year", txt)
     ends = c(ends[-1] - 1, length(nodes)) 
     starts = grep("Actions/Services", txt)
-browser()    
+
     ans = lapply(seq(along = starts),
                   function(i) {
                      makeTable(nodes[starts[i]:ends[i]])
                   })
-    ans
+    
+    list(goal = xmlValue(nodes[[2]]),
+         priorities = sapply(nodes[4:5], xmlValue),
+         need = xmlValue(nodes[[7]]),
+         appliesTo = c(schools = xmlValue(nodes[[10]]), pupils = xmlValue(nodes[[12]])),
+         eamo = eamo, actions = ans)
+}
+
+getEAMO =
+function(nodes, txt = sapply(nodes, xmlValue))
+{
+   i = grep("Expected Annual Measurable Outcomes", txt)
+
+   lapply(nodes[i+1], processEAMO)
+}
+
+processEAMO =
+function(node)
+{
+   divs = xmlChildren(node)
+   txt = XML:::trim(sapply(divs, xmlValue))
+   els = split(txt, cumsum(txt == ""))
+   ans = XML:::trim(sapply(els, paste, collapse = "\n"))
+   ans[ans != ""]
 }
 
 
