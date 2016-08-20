@@ -1,6 +1,7 @@
 # We should look at the CVRead package for some ideas and possible shared code.
 
 library(XML)
+library(RCSS)
 
 # Without flattening 
 # doc = htmlParse("Winton_LCAP_2015.2018.html")
@@ -23,39 +24,90 @@ library(XML)
 #
 # Get the goal
 
+#
+# 
+#
+
+getGoal1 =
+function(doc)
+{
+  processGoal1( getGoal1Nodes(doc, flatten = TRUE), css = getCSS(doc) )
+}
+
 getGoal1Nodes =
     # assumes doc has been flattend.
 function(doc, top = xmlRoot(doc)[["body"]][[4]], flatten = FALSE)
 {
+   if(is.character(doc))
+      doc = htmlParse(doc)
+   
    if(flatten)
       doc = flattenPages(doc)
+
+     # While Winton had GOAL   Goal 1:, Horicon and others have GOAL 1: in the first cell of the table.
+   g1 = getNodeSet(top, "./div[contains(., 'Goal 1:') ]/preceding-sibling::div[1]")[[1]]
+   if(is.null(g1))
+       g1 = getNodeSet(top, "./div[contains(., 'GOAL 1:') ]")[[1]]
+
+   if(is.null(g1))
+       stop("cannot find Goal 1")
    
-   g1 = getNodeSet(top, "./div[contains(., 'Goal 1:')]/preceding-sibling::div[1]")[[1]]
+   nxt = getNodeSet(g1, "./following-sibling::div")
    i = grep("GOAL", sapply(nxt, xmlValue))
    nodes = c(g1, nxt[1:(i[1]-1)])
       #  Probably don't want the blank spaced <div> nodes.
    nodes = nodes[ XML:::trim(sapply(nodes, xmlValue)) != ""]
    txt = sapply(nodes, xmlValue)
-browser()   
-   w = grepl("^(Page [0-9]+ of [0-9]+|(Revised & )?Board Approved.*[0-9]{,2}, [0-9]{4})", txt)
+   w = grepl("^(Page [0-9]+ of [0-9]+|(Revised & )?Board Approved.*[0-9]{,2}, [0-9]{4}|Complete a copy of this table for each of the LEA)", txt)
    nodes = nodes[!w]
+
    nodes
 }
 
+getCSS =
+function(doc)
+{
+   cssNodes = getNodeSet(doc, "//style[@type = 'text/css']")
+   css = readCSS( xmlValue( cssNodes[[3]] ), asText = TRUE)
+   css
+}
+
+getBBox =
+function(nodes, css)
+{
+    cssi = lapply(nodes, function(x) sapply(getCSSRules(x, css), asCSSObject))
+    vals = lapply(cssi, function(x) as.data.frame(lapply(x, function(x) sapply(x@declarations, slot, "value"))))
+    len = sapply(vals, length)
+    if(!all(len == 4))
+       stop("sort this out. Just get the left, width, height, ")
+    bbox = do.call(rbind, vals)
+    bbox
+}
+
+
+mergeNodes =
+function(nodes, bbox)
+{
+
+}
+
+
 processGoal1 =
     # Called with output from getGoal1Nodes
-function(nodes)    
+function(nodes, css)    
 {
+    nodes = mergeNodes(nodes, getBBox(nodes, css))
+    
     txt = sapply(nodes, xmlValue)    
     eamo = getEAMO(nodes, txt)
     
     ends = grep("LCAP Year", txt)
-    ends = c(ends[-1] - 1, length(nodes)) 
+    ends = c(ends[-1] - 1, length(txt)) 
     starts = grep("Actions/Services", txt)
 
     ans = lapply(seq(along = starts),
                   function(i) {
-                     makeTable(nodes[starts[i]:ends[i]])
+                     makeTable(nodes[starts[i]:ends[i]], css)
                   })
     
     list(goal = xmlValue(nodes[[2]]),
@@ -103,7 +155,7 @@ function(doc, pageNodes = getNodeSet(doc, "//div[@data-page-no]"), removeImages 
     if(removeImages)
        removeNodes(getNodeSet(doc, "//div[@data-page-no]/div[1]/img"))
 
-    removeNodes(getNodeSet(doc, "//span[@class='_ _0']"))    
+    removeNodes(getNodeSet(doc, "//span[@class = '_ _0']"))    
 
 
       # A page has 2 elements - the real content and
@@ -226,6 +278,7 @@ makeTable =
     #
 function(els, ncol = 4)
 {
+browser()    
   h = els[1:ncol]
   els = els[-(1:ncol)]
   m = matrix(sapply(els, function(x) paste(xmlSApply(x, xmlValue), collapse = " ")),  , ncol, byrow = TRUE)
