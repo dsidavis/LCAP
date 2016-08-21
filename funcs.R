@@ -4,12 +4,12 @@ library(XML)
 library(RCSS)
 
 # Without flattening 
-# doc = htmlParse("Winton_LCAP_2015.2018.html")
+# doc = htmlParse("pdf2htmlEX/Winton_LCAP_2015.2018.html")
 # g = getPageNode(getTable2Root(doc))
 # zz = getTable2Cells(g)
 
 # With flattening
-# doc = htmlParse("Winton_LCAP_2015.2018.html")
+# doc = htmlParse("pdf2htmlEX/Winton_LCAP_2015.2018.html")
 # g = getTable2Root(doc)
 # The parent is the container of all the nodes across all the pages.
 # So we have html/body/div[id=page-container]/<all nodes>
@@ -31,6 +31,8 @@ library(RCSS)
 getGoal1 =
 function(doc)
 {
+   if(is.character(doc))
+      doc = htmlParse(doc)
   processGoal1( getGoal1Nodes(doc, flatten = TRUE), css = getCSS(doc) )
 }
 
@@ -39,8 +41,7 @@ getGoal1Nodes =
 function(doc, top = xmlRoot(doc)[["body"]][[4]], flatten = FALSE)
 {
    if(is.character(doc))
-      doc = htmlParse(doc)
-   
+      doc = htmlParse(doc)   
    if(flatten)
       doc = flattenPages(doc)
 
@@ -72,31 +73,48 @@ function(doc)
    css
 }
 
+getNodeBBox =
+function(node, css, elNames = c("bottom", "height", "width", "left"))
+{
+    cssi = sapply(getCSSRules(node, css), asCSSObject)
+    els = unlist( lapply(cssi, slot, "declarations"))
+    ans = as.data.frame(lapply(els[elNames], function(x) if(is.null(x)) NA else x@value), stringsAsFactors = FALSE)
+    names(ans) = elNames
+    ans
+}
+
 getBBox =
 function(nodes, css)
 {
-    cssi = lapply(nodes, function(x) sapply(getCSSRules(x, css), asCSSObject))
-    vals = lapply(cssi, function(x) as.data.frame(lapply(x, function(x) sapply(x@declarations, slot, "value"))))
-    len = sapply(vals, length)
-    if(!all(len == 4))
-       stop("sort this out. Just get the left, width, height, ")
+    vals = lapply(nodes, getNodeBBox, css)
+#    len = sapply(vals, length)
+#    if(!all(len == 4))
+#       stop("sort this out. Just get the left, width, height, ")
     bbox = do.call(rbind, vals)
+    bbox$text = sapply(nodes, xmlValue)
     bbox
 }
 
-
-mergeNodes =
-function(nodes, bbox)
+mergePageNodes =
+function(page, css)
 {
-
+  if(xmlGetAttr(page, "data-page-no") == "16") browser()    
+  d = page[[1]]
+  bbox = getBBox(xmlChildren(d), css)
+  D = as.matrix(dist(bbox[, 1:4]))
+  close = sapply(1:nrow(D),function(i) c(i, which(D[,i] > 0 & D[,i] < 2)))
+  close = close[ sapply(close, length) > 1]
+  
+  page
 }
+
 
 
 processGoal1 =
     # Called with output from getGoal1Nodes
 function(nodes, css)    
 {
-    nodes = mergeNodes(nodes, getBBox(nodes, css))
+#    nodes = mergeNodes(nodes, getBBox(nodes, css))
     
     txt = sapply(nodes, xmlValue)    
     eamo = getEAMO(nodes, txt)
@@ -136,6 +154,7 @@ function(node)
 }
 
 
+if(FALSE)
 flattenPages =
     # See below for a more brute force way.
     #
@@ -146,10 +165,11 @@ flattenPages =
     #
 function(doc, pageNodes = getNodeSet(doc, "//div[@data-page-no]"), removeImages = TRUE, dropFirstPage = TRUE)
 {
-    
+
+browser()    
     if(dropFirstPage) {
-       p = pageNodes[-1]
-       removeNodes(p)
+       removeNodes(pageNodes[[1]])
+       pageNodes = pageNodes[-1]
     }
     
     if(removeImages)
@@ -182,15 +202,16 @@ flattenPages =
     # 2nd version. more brute force.
 function(doc)
 {
-    p = getNodeSet(doc, "//div[@data-page-no]")
 
+    removeNodes(getNodeSet(doc, "//span[@class = '_ _0']"))
+    
     p = getNodeSet(doc, "//div[@data-page-no]")
     removeNodes(sapply(p, `[[`, 2))
 
     img = getNodeSet(doc, "//div[@data-page-no]/div/img")
     removeNodes(img)
 
-    p = getNodeSet(doc, "//div[@data-page-no]")
+#    lapply(p, mergePageNodes, getCSS(doc))
 
     sapply(p, function(x) replaceNodeWithChildren(x[[1]]))
 
@@ -276,7 +297,7 @@ makeTable =
     # Given the cells from the different pages, assemble them into a data frame
     #
     #
-function(els, ncol = 4)
+function(els, css, ncol = 4)
 {
 browser()    
   h = els[1:ncol]
