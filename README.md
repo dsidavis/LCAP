@@ -1,3 +1,39 @@
+Currently
+```
+source("funcs.R")
+ff = list.files("pdf2htmlEX", full = TRUE)
+z = getGoal1(ff[3])
+```
+This attempts to extract all the information for the first Goal in the document.
+This returns
+```
+names(z)
+```
+```
+[1] "goal"       "priorities" "need"       "appliesTo"  "eamo"       "actions"   
+```
+This is 
+the statement of the goal, 
+the priorities from the top right corner,
+the "Identified Need", 
+the "Goal Applies to" divided into 
+   "Schools"
+   "Applicable Pupil Subgroups"
+the EAMO for each year
+the Actions/Services for each year.
+
+The first 4 of these are currently hard-coded and will need some finesse.
+
+We also need to capture the actual year in the LCAP Year row.
+
+
+```
+ff = list.files("pdf2htmlEX", full = TRUE)
+a = lapply(ff, function(f) tryCatch(getGoal1(f)))
+```
+The pdf2htmlEX/ClovisUnified_LCAP_2014.2017.html has a totally different format so this function fails.
+
+
 
 Nick (Ulle) suggested using pdf2htmlEX as it gives more structure than the current content of
 pdftohtml. (However, CVRead takes care of a lot of this.)
