@@ -3,6 +3,14 @@
 library(XML)
 library(RCSS)
 
+# Get the LCAP Year value.
+
+if(FALSE) {
+z = getGoal1("pdf2htmlEX/Winton_LCAP_2015.2018.html")
+names(z)  # [1] "goal"       "priorities" "need"       "appliesTo"  "eamo"       "actions"   
+}
+
+
 # Without flattening 
 # doc = htmlParse("pdf2htmlEX/Winton_LCAP_2015.2018.html")
 # g = getPageNode(getTable2Root(doc))
@@ -23,7 +31,6 @@ library(RCSS)
 #
 #
 # Get the goal
-
 #
 # 
 #
@@ -96,6 +103,9 @@ function(nodes, css)
 }
 
 mergePageNodes =
+    #
+    # We want to combine successive <div>s that are at essentially the same place.
+    #
 function(page, css)
 {
   if(xmlGetAttr(page, "data-page-no") == "16") browser()    
@@ -202,7 +212,6 @@ flattenPages =
     # 2nd version. more brute force.
 function(doc)
 {
-
     removeNodes(getNodeSet(doc, "//span[@class = '_ _0']"))
     
     p = getNodeSet(doc, "//div[@data-page-no]")
@@ -294,15 +303,49 @@ function(root, doc = as(root, "XMLInternalDocument"))
 
 makeTable =
     #
-    # Given the cells from the different pages, assemble them into a data frame
-    #
+    # Given the cells from the different pages, assemble them into a matrix
+    # We get the locations of each node, i.e. top, 
     #
 function(els, css, ncol = 4)
 {
-browser()    
-  h = els[1:ncol]
-  els = els[-(1:ncol)]
-  m = matrix(sapply(els, function(x) paste(xmlSApply(x, xmlValue), collapse = " ")),  , ncol, byrow = TRUE)
+      # Get the bounding box for each of these nodes. Then we  figure out the rows
+      # the x coordinate of the columns
+  bbox = getBBox(els, css)
+
+
+     # Now break the cells into columns by finding the typical
+     # left aligned space
+  horiz = bbox[, "left"]
+  counts = table(floor(horiz))
+  breaks = as.integer(names(counts))
+  d = diff(breaks)
+  breaks = breaks[c(TRUE, d > 20)] - 5
+        # cut(, ncol) doesn't do the job.
+  cols = cut(horiz, c(breaks, Inf))
+  bbox$col = cols
+
+  top = bbox[,1] + bbox[, 2]  
+  rows = split(bbox, cumsum(c(0, abs(diff(top))) > 30))
+ 
+     # Now split each row.
+  ans = lapply(rows, makeRow)
+
+  ans = do.call(rbind, ans)
+
+  structure(ans[-1,], dimnames = list(NULL, ans[1,]))
+
+# Original version for Winton...
+#  h = els[1:ncol]
+#  els = els[-(1:ncol)]
+#  m = matrix(sapply(els, function(x) paste(xmlSApply(x, xmlValue), collapse = " ")),  , ncol, byrow = TRUE)
+}
+
+makeRow =
+    # A data frame with bottom height with left text and col
+    # Group by col and collapse
+function(df)
+{
+   tapply(df$text, df$col, paste, collapse = "\n")
 }
 
 getNextPage =

@@ -326,3 +326,42 @@ LENGTH_PX
    348.29 
 ```
 
+
+Since we have collapsed the pages, we now have a problem with the coordinates.
+
+HoriconElementary_LCAP_2015.2016.html illustrates a row that spans 2 pages.  1.10 and also 1.14
+
+
+
+
+
+
+
+To enhance pdftohtml's output, we need to find all the lines.
+
+The ops from page 10 of Winto:
+sort(table(gsub("op = ", "", ops)))
+
+ gs   d   j   l   m   S   w   G  Tc BDC EMC  Tf  f*   g  BT  ET  TJ  Tm   n  W*  re  cm  Do   q   Q 
+  2  10  10  10  10  10  10  11  30  97  97 100 142 218 220 220 220 220 223 223 365 384 384 617 617 
+
+(See the pdf_reference....pdf)
+Operators
+l   append straight line segment     opLineTo
+S   stroke                           opStroke
+f*  fill path using even-odd rule    opEOFill
+re  append rectangle to path         opRectangle
+
+Do  Invoke named object.             opXObject
+W*  set clipping path                opEOClip
+
+
+d, j, w, G, g - setting the line styles.
+
+
+
+
+
+
+css unhandled conversion
+o = invisible(lapply(getCSSRules(getNodeSet(doc, "//div[starts-with(.,'Complete a copy')]")[[1]], css), asCSSObject))
