@@ -32,6 +32,21 @@ ff = list.files("pdf2htmlEX", full = TRUE)
 a = lapply(ff, function(f) tryCatch(getGoal1(f)))
 ```
 The pdf2htmlEX/ClovisUnified_LCAP_2014.2017.html has a totally different format so this function fails.
+Same for many. Note that these are 2014. Check with Jacob whether we want these?
+
+
+Problems
+~/DSIProjects/Jacob/Data/HTML/MillValley_LCAP_2015.2016.html  - 
+  Misses the first line of the Actions table.
+  Using the first row as the header.  Not enough space between these.
+  Thinks there are 5 columns. One is all NAs.
+  No EAMO picked up.
+  Identified Need an Goal Applies to are wrong.
+
+"~/DSIProjects/Jacob/Data/HTML/Larkspur-CorteMadera_LCAP_2015.2016.html"
+a = getGoal1("~/DSIProjects/Jacob/Data/HTML/Larkspur-CorteMadera_LCAP_2015.2016.html")
+
+
 
 
 

@@ -40,15 +40,21 @@ function(doc)
 {
    if(is.character(doc))
       doc = htmlParse(doc)
+   
   processGoal1( getGoal1Nodes(doc, flatten = TRUE), css = getCSS(doc) )
 }
 
 getGoal1Nodes =
     # assumes doc has been flattend.
+    # Gets all the nodes from the GOAL to the end of this section before the next GOAL
+    #
+    #  This drops the header and footer content outseide of the table, e.g., Page n of N, Board Approved...., Complete copy ....
+    #
 function(doc, top = xmlRoot(doc)[["body"]][[4]], flatten = FALSE)
 {
    if(is.character(doc))
-      doc = htmlParse(doc)   
+      doc = htmlParse(doc)
+   
    if(flatten)
       doc = flattenPages(doc)
 
@@ -58,12 +64,17 @@ function(doc, top = xmlRoot(doc)[["body"]][[4]], flatten = FALSE)
        g1 = getNodeSet(top, "./div[contains(., 'GOAL 1:') ]")[[1]]
 
    if(is.null(g1))
+       g1 = getNodeSet(top, "./div[contains(., 'GOAL:') ]")[[1]]       
+
+   if(is.null(g1))
        stop("cannot find Goal 1")
    
+     # Find the next GOAL so that we know where to end for this one.
    nxt = getNodeSet(g1, "./following-sibling::div")
-   i = grep("GOAL", sapply(nxt, xmlValue))
+   i = grep("GOAL", sapply(nxt, xmlValue))  
    nodes = c(g1, nxt[1:(i[1]-1)])
-      #  Probably don't want the blank spaced <div> nodes.
+   
+      #  Probably don't want the blank spaced <div> nodes. So get rid of them
    nodes = nodes[ XML:::trim(sapply(nodes, xmlValue)) != ""]
    txt = sapply(nodes, xmlValue)
    w = grepl("^(Page [0-9]+ of [0-9]+|(Revised & )?Board Approved.*[0-9]{,2}, [0-9]{4}|Complete a copy of this table for each of the LEA)", txt)
@@ -246,10 +257,11 @@ function(doc = as(pages[[1]], "XMLInternalDocument"), pages = getNodeSet(doc, "/
 
 #---------------------------
 
+if(FALSE) # not used or finished
 getExpectedOutcomes =
 function(root)
 {
-    getNodeSet(doc, ".//")
+    getNodeSet(root, ".//")
 }
 
 
