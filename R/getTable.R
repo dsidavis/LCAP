@@ -1,3 +1,8 @@
+#
+# getTable.R
+#
+
+
 library(XML)
 doc = htmlParse("Winton_LCAP_2015.2018.html")
 
