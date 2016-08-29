@@ -4,77 +4,133 @@
 # Testbed for PDF table extraction.
 
 
-library(XML)
+library(xml2)
+library(stringr)
 source("find_rectangles.R")
 
 main = function() {
   files = list.files("../xml", "LCAP_2015", full.names = TRUE)
-  files = "../xml/Acton-AguaDulceUnified_LCAP_2015.2018.xml"
+  #browser()
+  files = files[-c(36, 698, 764)]
+  #files = "../xml/ABCUnified_LCAP_2015.2018.xml"
+  #files = "../xml/AckermanCharter_LCAP_2015.2016.xml"
+  #files = "../xml/Acton-AguaDulceUnified_LCAP_2015.2018.xml"
+  #files = "../xml/AdelantoElementary_LCAP_2015.2018.xml"
+  #
+  # Memory
+  # ======
+  # FIXME: ../xml/Amador_AmadorCountyUnified_LCAP_2015.2016.xml
+  # FIXME: ../xml/SpreckelsUnionElementary_LCAP_2015.2016.xml
+  # FIXME: ../xml/WeaverUnion_LCAP_2015.2016.xml
 
-  ans = lapply(files, function(file) {
+  #ans = lapply(files, function(file) {
+  for (file in files) {
     cat(sprintf("File: %s\n", file))
-    text = sec2_extract(file)
-    sec2_parse(text)
-  })
-  names(ans) = files
 
-  saveRDS(ans, "foo.rds")
-  browser()
+    xml = xml2::read_xml(file)
+    first = sec2_locate_first(xml)
+    last = sec2_locate_last(xml)
+    cat(sprintf("  Found %i-%i.\n", first, last))
+    
+    #rm(xml)
+    #return(NULL)
+    #xml_find_all(xml, sprintf(
+    #  "//page[%s <= @number and @number <= %s]"
+    #  , first
+    #  , last
+    #))
+
+    #text = sec2_extract_table(pages)
+    #browser()
+    #sec2_parse(text)
+  }#)
+  #names(ans) = files
+
+  #saveRDS(ans, "foo.rds")
+  #browser()
 }
 
 
-#' Extract LCAP Section 2 Text
+#' Get LCAP Section 2 Text
 #'
-sec2_extract = function(file = "../xml/ABCUnified_LCAP_2015.2018.xml") {
-  xml = xmlParse(file)
+#' This function extracts text in each cell of a table.
+sec2_extract_table = function(pages) {
+  ans = character(0)
 
-  # Locate Section 2.
-  target = "Section 2:"
-  xpath =  sprintf("//page[text[contains(text(), '%s')]]", target)
-  sec2 = getNodeSet(xml, xpath) 
-  if (length(sec2) == 0) {
-    browser()
-    stop("Unable to locate 'Section 2:'.")
-  }
-  browser()
+  for (page in pages) {
+    # Get all cells on the page.
+    lines = getNodeSet(page, "./line")
+    if (length(lines) == 0) {
+      # FIXME: Skip Annual Update page if it has no lines.
+      # FIXME: What to do when there are no lines?
+      browser()
+      next
+    }
+    cells = find_rectangles(bbox_matrix(lines), 2)
+    cells = cells[order(cells[, 2], cells[, 1]), ]
 
-  # Look for the goals table.
-  page = getNodeSet(sec2[[1]],
-    "following-sibling::page[line and text[contains(text(), 'GOAL')]]"
-  )[[1]]
-  browser()
+    texts = getNodeSet(page, "./text")
 
-  cells = character(0)
-  # Process each page into text.
-  repeat {
-    # Find rectangles.
-    lines = getNodeSet(page, ".//line")
-    if (length(lines) == 0)
-      break
-    bbox = bbox_matrix(lines)
-    r = find_rectangles(bbox, 2)
-    r = r[order(r[, 2], r[, 1]), ]
-
-    # Group text into rectangles.
-    texts = getNodeSet(page, ".//text")
-    browser()
-
+    # Split the text nodes by cell.
     idx = vapply(texts, function(text) {
-      xy = get_xy(text)
-      match(TRUE, in_rect(xy, r), NA_real_)
+      match(TRUE, in_rect(get_xy(text), cells), NA_real_)
     }, numeric(1))
-    idx = factor(idx, seq_len(nrow(r)))
+    idx = factor(idx, seq_len(nrow(cells)))
+    texts = split(texts, idx)
 
-    texts = tapply(texts, idx, function(grp) {
+    # Collapse the text nodes in each cell into a newline-separated string.
+    texts = vapply(texts, function(grp) {
       paste0(vapply(grp, xmlValue, character(1)), collapse = "\n")
-    })
+    }, character(1))
 
-    cells = append(cells, texts)
-
-    page = getSibling(page)
+    ans = append(ans, texts)
   }
 
-  return (cells)
+  names(ans) = NULL
+  return (ans)
+}
+
+
+sec2_locate_first = function(xml) {
+  first = xml_find_all(xml, sprintf(
+    # Fixed for Magnolia Elementary
+    "//page[
+      (
+        text[contains(normalize-space(text()), '%s')]
+        and not(text[contains(normalize-space(text()), '%s')])
+      )
+      or text[contains(normalize-space(text()), '%s')]
+    ][1]/@number"
+    , "Related State and/or Local"
+    , "Identify the state and/or local"
+    , "Related State and /or Local"
+  ))
+  if (length(first) > 0)
+    return (xml_integer(first[[1]]))
+
+  cat("Unable to locate Section 2.", "\n")
+  browser()
+  return (NULL)
+}
+
+
+sec2_locate_last = function(xml) {
+  last = xml_find_all(xml, sprintf(
+    "//page[
+      text[contains(normalize-space(text()), '%s')]
+      or text[contains(normalize-space(text()), '%s')]
+      or text[contains(normalize-space(text()), '%s')]
+    ][1]/@number"
+    , "Annual Update Instructions"
+    , "Original"
+    , "Section 3: Use of Supplemental"
+  ))
+  if (length(last) > 0)
+    return (xml_integer(last[[1]]))
+
+  cat("Unable to locate Annual Update.", "\n")
+  browser()
+  return (NULL)
 }
 
 

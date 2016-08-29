@@ -10,15 +10,47 @@ This is a collection of scripts for extracting data from LCAPs.
 
 ## Questions
 
-* Jacob: are the 2014 LCAPs of lower priority? We will start with 2015.
-* Jacob: how much text processing are you and Sean comfortable with? Do we need
-  to clean the text from the tables before handing it over?
 * Should we implement a new PDF scraper by generating R bindings to poppler, or
   should we continue to use pdftohtml?
 
+## Examples
+
+LCAPs that do not have "Annual Update Instructions" after the first goals table
+in section 2:
+```
+../xml/ButtevilleUnionElementary_LCAP_2015.2016.xml"
+../xml/ContraCosta_MartinezUnified_LCAP_2015.2016.xml
+../xml/DosPalosOroLomaJointUnified_LCAP_2015.2016.xml
+../xml/ElDorado_MotherLodeUnionElementary_LCAP_2015.2018.xml
+../xml/EvergreenUnion_LCAP_2015.2016.xml
+../xml/FresnoUnified_LCAP_2015.2016.xml
+../xml/HamiltonUnified_LCAP_2015.2016.xml
+../xml/HowellMountainElementary_LCAP_2015.2016.xml
+../xml/Jamula-DalzuraUnionElementary_LCAP_2015.2016.xml
+../xml/KentfieldElementary_LCAP_2015.2016.xml
+../xml/Mt.ShastaUnionElementary_LCAP_2015.2016.xml
+../xml/NewJerusalemElementary_LCAP_2015.2016.xml
+../xml/PortervilleUnified_LCAP_2015.2016.xml
+../xml/RoundValleyUnified_LCAP_2015.2016.xml
+../xml/SanLorenzoValleyUnified_LCAP_2015.2016.xml
+../xml/SaugusUnion_LCAP_2015.2016.xml
+../xml/SouthBayUnion_SanDiego_LCAP_2015.2016.xml
+../xml/WeedUnionElementary_LCAP_2015.2016.xml
+```
+These are addressed by also searching for "Original" or "Section 3: Use of
+Supplemental".
+
+Section 2 of this LCAP can't be located with "State and/or Local Priorities"
+because of an extra space:
+```
+../xml/MagnoliaElementary_LCAP_2015.2016.xml
+```
+This is addressed by also searching for "State and /or Local Priorities".
+
 ## Notes (Nick)
 
-Format: goal, priorities, ident need, goal applies (2), EAMO, block
+* Jacob and Sean confirmed that 2015 is higher priority and they are fine with
+  cleaning the extracted text themselves.
 
 ## Notes (Duncan)
 
