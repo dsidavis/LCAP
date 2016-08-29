@@ -10,13 +10,17 @@ source("find_rectangles.R")
 
 main = function() {
   files = list.files("../xml", "LCAP_2015", full.names = TRUE)
-  #browser()
-  files = files[-c(36, 698, 764)]
-  #files = "../xml/ABCUnified_LCAP_2015.2018.xml"
-  #files = "../xml/AckermanCharter_LCAP_2015.2016.xml"
+  #files = files[-c(36, 698, 764)]
+
+  # FIXME: tables broken across pages do not have bottom lines
   #files = "../xml/Acton-AguaDulceUnified_LCAP_2015.2018.xml"
+
+  # FIXME: lots of tiny rectangles, no lines
   #files = "../xml/AdelantoElementary_LCAP_2015.2018.xml"
-  #
+
+  # FIXME:
+  files = "../xml/Alameda_AlamedaUnified_LCAP_2015.2016.xml"
+
   # Memory
   # ======
   # FIXME: ../xml/Amador_AmadorCountyUnified_LCAP_2015.2016.xml
@@ -32,13 +36,20 @@ main = function() {
     last = sec2_locate_last(xml)
     cat(sprintf("  Found %i-%i.\n", first, last))
     
-    #rm(xml)
-    #return(NULL)
-    #xml_find_all(xml, sprintf(
-    #  "//page[%s <= @number and @number <= %s]"
-    #  , first
-    #  , last
-    #))
+    pages = xml_find_all(xml, sprintf(
+      "//page[%s <= @number and @number <= %s]"
+      , first
+      , last
+    ))
+
+    plot_page(pages[[1]])
+
+    browser()
+    lines = xml_find_all(pages[[1]], "./line")
+    cells = find_rectangles(bbox_matrix(lines), 10)
+    rect(cells[, 1], cells[, 2], cells[, 3], cells[, 4], lwd = 2,
+      border = "orange")
+    browser()
 
     #text = sec2_extract_table(pages)
     #browser()
@@ -208,7 +219,7 @@ in_rect = function(pt, rect) {
 
 
 get_xy = function(node) {
-  xy = xmlAttrs(node)[c("left", "top")]
+  xy = xml_attrs(node)[c("left", "top")]
   as.numeric(xy)
 }
 
@@ -219,7 +230,7 @@ get_xy = function(node) {
 #'
 #' @param page A page from an XML'd PDF.
 plot_page = function(page) {
-  attrs = xmlAttrs(page)
+  attrs = xml_attrs(page)
   xlim = as.numeric(attrs[c("left", "width")])
   ylim = as.numeric(attrs[c("height", "top")])
 
@@ -229,9 +240,9 @@ plot_page = function(page) {
   axis(2)
 
   # Plot all lines.
-  lines = getNodeSet(page, ".//line")
+  lines = xml_find_all(page, "./line")
   sapply(lines, function(line) {
-    attrs = xmlAttrs(line)
+    attrs = xml_attrs(line)
 
     # left, bottom, right, top
     bbox = as.numeric(strsplit(attrs["bbox"], ",")[[1]])
@@ -256,20 +267,21 @@ plot_page = function(page) {
   })
 
   # Plot all rects.
-  #rects = getNodeSet(page, ".//rect")
-  #sapply(rects, function(rect) {
-  #  attrs = xmlAttrs(rect)
+  rects = xml_find_all(page, "./rect")
+  sapply(rects, function(rect) {
+    attrs = xml_attrs(rect)
 
-  #  # left, bottom, right, top
-  #  bbox = as.numeric(strsplit(attrs["bbox"], ",")[[1]])
-  #  if ( all(is.na(bbox)) )
-  #    return (NULL)
+    # left, bottom, right, top
+    bbox = as.numeric(strsplit(attrs["bbox"], ",")[[1]])
+    if ( all(is.na(bbox)) )
+      return (NULL)
 
-  #  lwd = as.numeric(attrs["lineWidth"])
-  #  if (is.na(lwd))
-  #    lwd = 1.0
+    lwd = as.numeric(attrs["lineWidth"])
+    if (is.na(lwd))
+      lwd = 1.0
 
-  #  rect(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]], lwd = lwd, col = "gray90",
-  #    border = "red")
-  #})
+    rect(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]], lwd = lwd, col = "gray90",
+      border = "red")
+    browser()
+  })
 }

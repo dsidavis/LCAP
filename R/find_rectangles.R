@@ -20,36 +20,58 @@ find_rectangles = function(lines, xtol = 5, ytol = xtol) {
   hz = hz[order(hz[, 2], hz[, 1]), ]
   vt = vt[order(vt[, 1], vt[, 2]), ]
 
-  regions = list()
+  regions = NULL
   y_below  = numeric(nrow(vt))
 
   for ( i in seq_len(nrow(hz)) ) {
+    points(hz[i, 1], hz[i, 2], cex = 1, pch = 8)
     # Ignore verticals outside the scanline's x-interval.
     active = hz[i, 1] - xtol < vt[, 1] & vt[, 1] < hz[i, 3] + xtol
     if (!any(active))
       next
     vt_a = vt[active, , drop = FALSE]
 
-    # Find verticals that end on or intersect the scanline.
+    # Find verticals that start on, intersect, or end on the scanline.
     y = hz[i, 2]
-    bot = y - ytol < vt_a[, 4] & vt_a[, 4] < y + ytol
+    top = y - ytol < vt_a[, 2] & vt_a[, 2] < y + ytol
     mid = vt_a[, 2] < y & y < vt_a[, 4]
+    bot = y - ytol < vt_a[, 4] & vt_a[, 4] < y + ytol
+
+    # FIXME:
+    points(vt_a[top, 1], rep_len(y, sum(top)), cex = 4, pch = 6)
+    points(vt_a[mid, 1], rep_len(y, sum(mid)), cex = 4, pch = 5)
+    points(vt_a[bot, 1], rep_len(y, sum(bot)), cex = 4, pch = 2)
 
     # Check for completed rectangles.
     ends = bot | mid
     if (sum(ends) > 1) {
+      ends = which(ends)
       x = vt_a[ends, 1]
-      ybottom = head(y_below[active][ends], -1)
+      ybottom = y_below[active][head(ends, -1)]
 
-      regions[[length(regions) + 1]] = 
-        cbind(head(x, -1), ybottom, tail(x, -1), y, deparse.level = 0)
+      regions = cbind(regions,
+        rbind(head(x, -1), ybottom, tail(x, -1), y, deparse.level = 0)
+      )
+
+      browser()
+      y_below[active][head(ends, -1)] = y
+
+      # FIXME:
+      rect(regions[1, ], regions[2, ], regions[3, ], regions[4, ],
+        border = "orange", lwd = 2)
     }
 
+    y_below[active][top] = y
+
+    # This should only be set when a line starts or a box is closed.
     # Mark the scanline.
-    y_below[active] = y
+    #y_below[active] = y
   }
 
-  return (do.call(rbind, regions))
+  if (!is.null(regions))
+    regions = t(regions)
+
+  return (regions)
 }
 
 
@@ -63,20 +85,36 @@ find_rectangles = function(lines, xtol = 5, ytol = xtol) {
 bbox_matrix = function(nodeset) {
   bbox_mat =
     vapply(nodeset, function(node) {
-      bbox = xmlGetAttr(node, "bbox")
-      if (is.null(bbox))
-        return (rep_len(NA_real_, 4))
+      tag = xml_name(node)
 
-      as.numeric(strsplit(bbox, ",")[[1]])
+      if (tag %in% c("line", "rect")) {
+        bbox = xml_attr(node, "bbox")
+        bbox = as.numeric(strsplit(bbox, ",")[[1]])
+
+      } else if (tag == "text") {
+        bbox = xml_attrs(node)[c("left", "top", "width", "height")]
+        bbox = as.numeric(bbox)
+        bbox[3:4] = bbox[3:4] + bbox[1:2]
+
+      } else {
+        stop(sprintf("Cannot get bbox for node '%s'.\n", tag))
+      }
+
+      return (bbox)
     }, numeric(4))
 
   bbox_mat = t(bbox_mat)
   
-  # Ensure bottom is less than top.
-  #swap = bbox_mat[, 2] > bbox_mat[, 4]
-  #tmp = bbox_mat[swap, 2]
-  #bbox_mat[swap, 2] = bbox_mat[swap, 4]
-  #bbox_mat[swap, 4] = tmp
+  # Make sure left <= right and bottom <= top (despite plotting top-down).
+  to_swap = bbox_mat[, 1] > bbox_mat[, 3]
+  tmp = bbox_mat[to_swap, 1]
+  bbox_mat[to_swap, 1] = bbox_mat[to_swap, 3]
+  bbox_mat[to_swap, 3] = tmp
+
+  to_swap = bbox_mat[, 2] > bbox_mat[, 4]
+  tmp = bbox_mat[to_swap, 2]
+  bbox_mat[to_swap, 2] = bbox_mat[to_swap, 4]
+  bbox_mat[to_swap, 4] = tmp
 
   return (bbox_mat)
 }
