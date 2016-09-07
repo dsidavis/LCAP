@@ -47,11 +47,13 @@ main = function() {
 
     page = pages[[1]]
 
-    plot_pdf_page(page)
+    plot_pdf_new(page)
     rects = pdf_bbox(xml_find_all(page, "./rect"))
     lines = rects_to_lines(rects)
     #lines = split_lines_hv(lines)
-    simplify_lines(lines)
+    lines = simplify_lines(lines)
+    #rapply(lines, plot_pdf_lines)
+    lines_to_cells(lines)
 
     browser()
   }#)
