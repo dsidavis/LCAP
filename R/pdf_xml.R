@@ -11,7 +11,7 @@
 #' @param nodeset
 #'
 #' @return
-bbox_matrix = function(nodeset) {
+pdf_bbox = function(nodeset) {
   bbox_mat =
     vapply(nodeset, function(node) {
       tag = xml_name(node)

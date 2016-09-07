@@ -47,8 +47,8 @@ main = function() {
 
     page = pages[[1]]
 
-    plot_page(page)
-    rects = bbox_matrix(xml_find_all(page, "./rect"))
+    plot_pdf_page(page)
+    rects = pdf_bbox(xml_find_all(page, "./rect"))
     lines = rects_to_lines(rects)
     #lines = split_lines_hv(lines)
     simplify_lines(lines)
@@ -78,8 +78,8 @@ sec2_extract_table = function(pages) {
           xml_attr(page, "number")))
       next
     }
-    lines = find_rectangles(bbox_matrix(lines), 2)
-    rects = bbox_matrix(rects)
+    lines = find_rectangles(pdf_bbox(lines), 2)
+    rects = pdf_bbox(rects)
 
     cells = rbind(lines, rects)
     cells = cells[order(cells[, 2], cells[, 1]), ]
