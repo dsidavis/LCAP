@@ -1,7 +1,87 @@
 #
-# find_rectangles.R
+# geometry.R
 #
-# Functions for manipulating lines in PDFs.
+# Functions for working with rects and lines.
+
+
+#' Simplify Overlapping Lines
+#'
+simplify_lines = function(lines, tol) {
+  lines = split_lines_hv(lines)
+  
+  # Merge horizontals.
+  hz = lines$hz
+  # TODO: Group lines within some tolerance.
+  foo = tapply(seq_len(nrow(hz)), hz[, 2], function(group) {
+    h = hz[group, , drop = FALSE]
+    if (nrow(h) < 2)
+      return (h)
+
+    x = join_colinear_segments(h[, 1], h[, 3])
+    y = h[1, 2]
+
+    cbind(x[, 1], y, x[, 2], y, deparse.level = 0)
+  })
+
+  browser()
+}
+
+
+join_colinear_segments = function(begins, ends) {
+  ord = order(begins, ends, decreasing = FALSE)
+  n = length(ord)
+
+  first = begins[ord[1]]
+  begins = begins[ord[-1]]
+
+  last = ends[ord[n]]
+  ends = ends[ord[-n]]
+
+  breaks = ends < begins
+
+  matrix(c(first, begins[breaks], ends[breaks], last), ncol = 2)
+}
+
+
+#' Split Lines Into Horizontals & Verticals
+#'
+split_lines_hv = function(lines, tol = 0) {
+
+  ht = lines[, 4] - lines[, 2] 
+  is_hz = 0 - tol <= ht & ht <= 0 + tol
+
+  wd = lines[, 3] - lines[, 1] 
+  is_vt = 0 - tol <= wd & wd <= 0 + tol
+
+  hz = lines[is_hz & !is_vt, ]
+  vt = lines[!is_hz & is_vt, ]
+
+  list(hz = hz, vt = vt)
+}
+
+
+#' Convert Rects To Lines
+#'
+#' @param x (numeric) A matrix of rect coordinates (left, bottom, right, top).
+#'
+rects_to_lines = function(rects) {
+  n = nrow(rects)
+  if (is.null(n)) {
+    rects = matrix(rects, 1, 4)
+    n = 1
+  }
+
+  lines = vapply(seq_len(n), function(i) {
+    rects[i, c(
+      1, 2, 1, 4, # left
+      1, 2, 3, 2, # bottom
+      3, 2, 3, 4, # right
+      1, 4, 3, 4  # top
+    )]
+  }, numeric(16))
+
+  matrix(lines, ncol = 4, byrow = TRUE)
+}
 
 
 #' Find Rectangles Enclosed By Lines
@@ -75,46 +155,3 @@ find_rectangles = function(lines, xtol = 5, ytol = xtol) {
 }
 
 
-#' Get Bounding Boxes
-#'
-#' This function gets the bounding boxes for all nodes in a nodeset.
-#'
-#' @param nodeset
-#'
-#' @return
-bbox_matrix = function(nodeset) {
-  bbox_mat =
-    vapply(nodeset, function(node) {
-      tag = xml_name(node)
-
-      if (tag %in% c("line", "rect")) {
-        bbox = xml_attr(node, "bbox")
-        bbox = as.numeric(strsplit(bbox, ",")[[1]])
-
-      } else if (tag == "text") {
-        bbox = xml_attrs(node)[c("left", "top", "width", "height")]
-        bbox = as.numeric(bbox)
-        bbox[3:4] = bbox[3:4] + bbox[1:2]
-
-      } else {
-        stop(sprintf("Cannot get bbox for node '%s'.\n", tag))
-      }
-
-      return (bbox)
-    }, numeric(4))
-
-  bbox_mat = t(bbox_mat)
-  
-  # Make sure left <= right and bottom <= top (despite plotting top-down).
-  to_swap = bbox_mat[, 1] > bbox_mat[, 3]
-  tmp = bbox_mat[to_swap, 1]
-  bbox_mat[to_swap, 1] = bbox_mat[to_swap, 3]
-  bbox_mat[to_swap, 3] = tmp
-
-  to_swap = bbox_mat[, 2] > bbox_mat[, 4]
-  tmp = bbox_mat[to_swap, 2]
-  bbox_mat[to_swap, 2] = bbox_mat[to_swap, 4]
-  bbox_mat[to_swap, 4] = tmp
-
-  return (bbox_mat)
-}

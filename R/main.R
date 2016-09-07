@@ -1,12 +1,15 @@
 #
 # main.R
 #
-# Testbed for PDF table extraction.
-
+# Entry point for PDF data extraction.
 
 library(xml2)
 library(stringr)
-source("find_rectangles.R")
+
+source("pdf_xml.R")
+source("geometry.R")
+source("plot_geometry.R")
+
 
 main = function() {
   files = list.files("../xml", "LCAP_2015", full.names = TRUE)
@@ -42,25 +45,21 @@ main = function() {
       , last
     ))
 
-    plot_page(pages[[1]])
+    page = pages[[1]]
+
+    plot_page(page)
+    rects = bbox_matrix(xml_find_all(page, "./rect"))
+    lines = rects_to_lines(rects)
+    #lines = split_lines_hv(lines)
+    simplify_lines(lines)
 
     browser()
-    lines = xml_find_all(pages[[1]], "./line")
-    cells = find_rectangles(bbox_matrix(lines), 10)
-    rect(cells[, 1], cells[, 2], cells[, 3], cells[, 4], lwd = 2,
-      border = "orange")
-    browser()
-
-    #text = sec2_extract_table(pages)
-    #browser()
-    #sec2_parse(text)
   }#)
   #names(ans) = files
 
   #saveRDS(ans, "foo.rds")
   #browser()
 }
-
 
 #' Get LCAP Section 2 Text
 #'
@@ -70,17 +69,23 @@ sec2_extract_table = function(pages) {
 
   for (page in pages) {
     # Get all cells on the page.
-    lines = getNodeSet(page, "./line")
-    if (length(lines) == 0) {
+    lines = xml_find_all(page, "./line")
+    rects = xml_find_all(page, "./rect")
+    if (length(lines) == 0 && length(rects) == 0) {
       # FIXME: Skip Annual Update page if it has no lines.
       # FIXME: What to do when there are no lines?
-      browser()
+      cat(sprintf("Page %s does not have line or rect tags.\n",
+          xml_attr(page, "number")))
       next
     }
-    cells = find_rectangles(bbox_matrix(lines), 2)
-    cells = cells[order(cells[, 2], cells[, 1]), ]
+    lines = find_rectangles(bbox_matrix(lines), 2)
+    rects = bbox_matrix(rects)
 
-    texts = getNodeSet(page, "./text")
+    cells = rbind(lines, rects)
+    cells = cells[order(cells[, 2], cells[, 1]), ]
+    cells = cells[!duplicated(cells), ]
+
+    texts = xml_find_all(page, "./text")
 
     # Split the text nodes by cell.
     idx = vapply(texts, function(text) {
@@ -90,8 +95,8 @@ sec2_extract_table = function(pages) {
     texts = split(texts, idx)
 
     # Collapse the text nodes in each cell into a newline-separated string.
-    texts = vapply(texts, function(grp) {
-      paste0(vapply(grp, xmlValue, character(1)), collapse = "\n")
+    texts = vapply(texts, function(text) {
+      paste0(xml_text(text), collapse = "\n")
     }, character(1))
 
     ans = append(ans, texts)
@@ -151,13 +156,16 @@ sec2_parse = function(text) {
   text[is.na(text)] = ""
 
   # Split table into goals.
-  groups = cumsum(grepl("GOAL +[1-9][0-9]*:", text, ignore.case = TRUE))
+  groups = cumsum(grepl("GOAL\\s+[1-9]\\w*:", text, ignore.case = TRUE))
   goals = split(text, groups)
+  if (groups[1] == 0)
+    goals = goals[-1]
 
   lapply(goals, function(goal) {
     # Split goal into LCAP years.
     years = split(goal, cumsum(grepl("LCAP Year [1-9]:", goal)))
     header = years[[1]]
+    browser()
 
     # Header
     # ------
@@ -214,74 +222,12 @@ sec2_parse = function(text) {
 #'
 #' Check whether a point falls in a rectangle.
 in_rect = function(pt, rect) {
-  rect[, 1] < pt[1] & pt[1] < rect[, 3] & rect[, 2] < pt[2] & pt[2] < rect[, 4]
+  rect[, 1] <= pt[1] & pt[1] <= rect[, 3] &
+    rect[, 2] <= pt[2] & pt[2] <= rect[, 4]
 }
 
 
 get_xy = function(node) {
   xy = xml_attrs(node)[c("left", "top")]
   as.numeric(xy)
-}
-
-
-#' Plot Lines And Rects
-#'
-#' This function plots the lines and rects from one page of an XML'd PDF.
-#'
-#' @param page A page from an XML'd PDF.
-plot_page = function(page) {
-  attrs = xml_attrs(page)
-  xlim = as.numeric(attrs[c("left", "width")])
-  ylim = as.numeric(attrs[c("height", "top")])
-
-  plot.new()
-  plot.window(xlim, ylim, asp = 1)
-  axis(1)
-  axis(2)
-
-  # Plot all lines.
-  lines = xml_find_all(page, "./line")
-  sapply(lines, function(line) {
-    attrs = xml_attrs(line)
-
-    # left, bottom, right, top
-    bbox = as.numeric(strsplit(attrs["bbox"], ",")[[1]])
-    if ( all(is.na(bbox)) )
-      return (NULL)
-
-    lwd = as.numeric(attrs["lineWidth"])
-    if (is.na(lwd))
-      lwd = 1.0
-
-    lty = if ("dashes" %in% names(attrs)) "dashed" else "solid"
-    #stroke = as.numeric(strsplit(attrs["stroke.color"], ",")[[1]])
-    #stroke = do.call("rgb", as.list(stroke))
-
-    col = "black"
-    hlen = abs(bbox[3] - bbox[1])
-    if (0 < hlen && hlen < 20) {
-      col = "blue"
-      lwd = 10
-    }
-    lines(bbox[c(1, 3)], bbox[c(2, 4)], lwd = lwd, lty = lty, col = col)
-  })
-
-  # Plot all rects.
-  rects = xml_find_all(page, "./rect")
-  sapply(rects, function(rect) {
-    attrs = xml_attrs(rect)
-
-    # left, bottom, right, top
-    bbox = as.numeric(strsplit(attrs["bbox"], ",")[[1]])
-    if ( all(is.na(bbox)) )
-      return (NULL)
-
-    lwd = as.numeric(attrs["lineWidth"])
-    if (is.na(lwd))
-      lwd = 1.0
-
-    rect(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]], lwd = lwd, col = "gray90",
-      border = "red")
-    browser()
-  })
 }
