@@ -7,7 +7,9 @@ library(xml2)
 
 
 plot_pdf_lines = function(lines, ...) {
-  lines(lines[, c(1, 3)], lines[, c(2, 4)], ...)
+  apply(lines, 1, function(x) {
+    lines(x[c(1, 3)], x[c(2, 4)], ...)
+  })
 }
 
 
