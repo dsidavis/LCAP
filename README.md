@@ -5,8 +5,11 @@ This is a collection of scripts for extracting data from LCAPs.
 ## DSI Task List
 
 * [x] Convert all PDFs to XML with pdftohtml.
-* [ ] Extract goal tables from section 2 (beginning with "Section 2" and ending
-  with "Annual Update")
+* [ ] Extract Section 2 tables (from "Section 2" to "Annual Update")
+  + [x] Locate Section 2
+  + [x] Convert rects to lines
+  + [ ] Detect cells formed by lines
+  + [ ] Parse text in cells
 
 ## Questions
 
