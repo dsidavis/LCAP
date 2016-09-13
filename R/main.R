@@ -49,9 +49,11 @@ main = function() {
 
     plot_pdf_new(page)
     rects = pdf_bbox(xml_find_all(page, "./rect"))
+    #rect(rects[, 1], rects[, 2], rects[, 3], rects[, 4], border = "red",
+    #  col = "white")
     lines = rects_to_lines(rects)
     #rapply(lines, plot_pdf_lines)
-    lines_to_cells(lines)
+    lines_to_cells2(lines)
 
     browser()
   }#)
@@ -216,14 +218,6 @@ sec2_parse = function(text) {
 
     return (data)
   })
-}
-
-
-#'
-#' Check whether a point falls in a rectangle.
-in_rect = function(pt, rect) {
-  rect[, 1] <= pt[1] & pt[1] <= rect[, 3] &
-    rect[, 2] <= pt[2] & pt[2] <= rect[, 4]
 }
 
 

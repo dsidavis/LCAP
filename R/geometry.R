@@ -149,8 +149,8 @@ rects_to_lines = function(rects) {
 lines_to_cells = function(lines, xtol = 5, ytol = xtol) {
   lines = split_lines_hv(lines)
 
-  hz = simplify_lines_hz(lines$hz, tol_line = 0, tol_join = xtol * 2)
-  vt = do.call(rbind, simplify_lines_vt(lines$vt, tol_line = 0))
+  hz = simplify_lines_hz(lines$hz, tol_line = 5, tol_join = xtol * 2)
+  vt = do.call(rbind, simplify_lines_vt(lines$vt, tol_line = 5, tol_join = 1))
 
   regions = NULL
   y_below = numeric(nrow(vt))
@@ -169,10 +169,10 @@ lines_to_cells = function(lines, xtol = 5, ytol = xtol) {
     bot = y - ytol < vt_a[, 4] & vt_a[, 4] < y + ytol
 
     # FIXME:
-    #abline(h = y, lty = "dashed", col = "gray80")
-    points(vt_a[top, 1], rep_len(y, sum(top)), cex = 0.5, pch = 6)
-    points(vt_a[mid, 1], rep_len(y, sum(mid)), cex = 0.5, pch = 5)
-    points(vt_a[bot, 1], rep_len(y, sum(bot)), cex = 0.5, pch = 2)
+    abline(h = y, lty = "dashed", col = "gray80")
+    #points(vt_a[top, 1], rep_len(y, sum(top)), cex = 0.5, pch = 6)
+    #points(vt_a[mid, 1], rep_len(y, sum(mid)), cex = 0.5, pch = 5)
+    #points(vt_a[bot, 1], rep_len(y, sum(bot)), cex = 0.5, pch = 2)
 
     # Check for completed rectangles.
     ends = (bot | mid) & !top
@@ -185,17 +185,17 @@ lines_to_cells = function(lines, xtol = 5, ytol = xtol) {
         rbind(head(x, -1), ybottom, tail(x, -1), y, deparse.level = 0)
       )
 
-      y_below[active][head(ends, -1)] = y
+      browser() 
 
       # FIXME:
       rect(regions[1, ], regions[2, ], regions[3, ], regions[4, ],
-        border = "orange", lty = "dotted")
+        border = "black", lty = "dotted", col = "gray80")
+
+      y_below[active][head(ends, -1)] = y
     }
 
     y_below[active][top] = y
   }
-
-  browser()
 
   if (!is.null(regions))
     regions = t(regions)
@@ -203,6 +203,136 @@ lines_to_cells = function(lines, xtol = 5, ytol = xtol) {
   return (regions)
 }
 
+
+lines_to_cells2 = function(lines, tol_x = 5, tol_y = tol_x) {
+  lines = split_lines_hv(lines)
+
+  hz = simplify_lines_hz(lines$hz, tol_line = 5, tol_join = tol_x * 2)
+  vt = do.call(rbind, simplify_lines_vt(lines$vt, tol_line = 5, tol_join = 1))
+
+  plot_pdf_lines(do.call(rbind, hz), col = "orange")
+  plot_pdf_lines(vt, col = "violet")
+
+  # Need to keep track of:
+  # * cells
+  # * "active" lines & their tops
+
+  cells = NULL
+  running   = logical(nrow(vt))
+  running_y = numeric(nrow(vt))
+
+  for (hz_a in hz) {
+    y = hz_a[1, 2]
+
+    abline(h = y, lty = "dashed", col = "gray80")
+
+    # Active Verticals
+    # ----------------
+    vt_a = vt
+
+    # Ignore verticals with bottom above or top below the sweep line.
+    # NOTE: Sorting the verticals by bottoms could make this more efficient.
+    in_y = 
+      y - tol_y <= vt_a[, 4] &  # sweep starts before vertical ends
+      vt_a[, 2] <= y + tol_y    # vertical starts before sweep ends
+    if (!any(in_y))
+      next
+    vt_a = vt_a[in_y, , drop = FALSE]
+
+    # Ignore verticals that don't intersect segments on the sweep line.
+    which_x = which_segment(vt_a[, 1], hz_a[, c(1, 3)], tol_x)
+    in_x = !is.na(which_x)
+    if (!any(in_x))
+      next
+    vt_a = vt_a[in_x, , drop = FALSE]
+    which_x = which_x[in_x]
+
+    # Groups
+    # ------
+    top = y - tol_y <= vt_a[, 2]  # sweep starts before vertical starts
+    bot = vt_a[, 4] <= y + tol_y  # vertical ends before sweep ends
+    mid = !(top | bot)
+
+    if (any(running)) {
+      ends = (bot | mid) & running[in_y][in_x]
+      if (sum(ends) > 1) {
+        which_x = which_x[ends]
+        is_closed = head(which_x, -1) == tail(which_x, -1)
+
+        if (any(is_closed)) {
+          x = vt_a[ends, 1]
+          x1 = head(x, -1)
+          x2 = tail(x, -1)
+
+          y1 = head(running_y[in_y][in_x][ends], -1)
+
+          new_cells = rbind(x1, y1, x2, y, deparse.level = 0)[, is_closed]
+          cells = cbind(cells, new_cells)
+
+          rect(cells[1, ], cells[2, ], cells[3, ], cells[4, ],
+            border = "green")
+
+          browser()
+
+          # FIXME: Only add tops for non-protruding segments.
+          # Possibly use findInterval?
+          running_y[in_y][in_x][head(which(ends), -1)] = y
+          running[in_y][in_x][top] = TRUE
+          running_y[in_y][in_x][top] = y
+        }
+      }
+
+      running[in_y][in_x][bot] = FALSE
+      running_y[in_y][in_x][bot] = 0
+
+    } else {
+      running[in_y][in_x][top & !bot] = TRUE
+      running_y[running] = y
+    }
+  }
+
+  # ---
+  #for (hz_a in hz) {
+  #  y = hz_a[1, 2]
+  #  # Ignore verticals with bottom above or top below the sweep line.
+  #  # NOTE: Sorting the verticals by bottoms could make this more efficient.
+  #  active_y = 
+  #    y - tol_y <= vt[, 4] | # sweep starts before vertical ends
+  #    vt[, 2]   <= y + tol   # vertical starts before sweep ends
+  #  if (!any(active_y))
+  #    next
+  #  vt_a = vt[active_y, , drop = FALSE]
+
+  #  # Ignore verticals that don't intersect segments on the sweep line.
+  #  active_x = in_interval(hz_a[, 1] - xtol, vt_a[, 1], hz_a[, 3] + xtol)
+  #  if (!any(active_x))
+  #    next
+  #  vt_a = vt_a[active_x, , drop = FALSE]
+
+  #  # Group the remaining verticals into tops, mids, or bottoms.
+  #  top = y - tol_y <= vt_a[, 2] # sweep starts before vertical starts
+  #  bot = vt_a[, 4] <= y + tol_y # vertical ends before sweep ends
+  #  mid = !(top | bot)
+  #  
+  #  # Close rectangles for verticals that are running.
+  #  # Check for completed rectangles.
+  #  # TODO: keep track of "open" space so that it can be closed correctly.
+
+  #  # Mark tops as running.
+  #  running[active][top] = TRUE
+  #}
+}
+
+
+which_segment = function(x, segments, tol) {
+  tol = tol * rep_len(c(-1, 1), length(segments))
+  idx = findInterval(x, as.vector(t(segments)) + tol)
+
+  idx[(idx %% 2) != 1] = NA
+  idx = (idx + 1) / 2
+
+  return (idx)
+}
 
 in_interval = function(a, x, b) {
   (findInterval(x, as.vector(rbind(a, b))) %% 2) == 1
@@ -223,69 +353,21 @@ in_interval2 = function(a, x, b, include_ends = FALSE) {
 }
 
 
-#' Find Rectangles Enclosed By Lines
-#'
-#' @param lines (numeric matrix) A bounding box matrix for the lines.
-#' @param xtol (numeric)
-#' @param ytol (numeric)
-#'
-#' @return A bounding box matrix for the rectangles.
-find_rectangles = function(lines, xtol = 5, ytol = xtol) {
-  lines = split_lines_hv(lines)
-  hz = lines$hz
-  vt = lines$vt
-
-  regions = NULL
-  y_below  = numeric(nrow(vt))
-
-  for ( i in seq_len(nrow(hz)) ) {
-    points(hz[i, 1], hz[i, 2], cex = 1, pch = 8)
-    # Ignore verticals outside the scanline's x-interval.
-    active = hz[i, 1] - xtol < vt[, 1] & vt[, 1] < hz[i, 3] + xtol
-    if (!any(active))
-      next
-    vt_a = vt[active, , drop = FALSE]
-
-    # Find verticals that start on, intersect, or end on the scanline.
-    y = hz[i, 2]
-    top = y - ytol < vt_a[, 2] & vt_a[, 2] < y + ytol
-    mid = vt_a[, 2] < y & y < vt_a[, 4]
-    bot = y - ytol < vt_a[, 4] & vt_a[, 4] < y + ytol
-
-    # FIXME:
-    points(vt_a[top, 1], rep_len(y, sum(top)), cex = 4, pch = 6)
-    points(vt_a[mid, 1], rep_len(y, sum(mid)), cex = 4, pch = 5)
-    points(vt_a[bot, 1], rep_len(y, sum(bot)), cex = 4, pch = 2)
-
-    # Check for completed rectangles.
-    ends = bot | mid
-    if (sum(ends) > 1) {
-      ends = which(ends)
-      x = vt_a[ends, 1]
-      ybottom = y_below[active][head(ends, -1)]
-
-      regions = cbind(regions,
-        rbind(head(x, -1), ybottom, tail(x, -1), y, deparse.level = 0)
-      )
-
-      y_below[active][head(ends, -1)] = y
-
-      # FIXME:
-      rect(regions[1, ], regions[2, ], regions[3, ], regions[4, ],
-        border = "orange", lwd = 2)
-    }
-
-    y_below[active][top] = y
-
-    # This should only be set when a line starts or a box is closed.
-    # Mark the scanline.
-    #y_below[active] = y
-  }
-
-  if (!is.null(regions))
-    regions = t(regions)
-
-  return (regions)
+pt_in_rect = function(pt, rect) {
+  rect[1:2] <= pt & pt <= rect[3:4]
 }
 
+contains_rect = function(rects) {
+  rect_lt = t(rects[, 1:2])
+  rect_rb = t(rects[, 3:4])
 
+  n = nrow(rects)
+  r_in_c = vapply(seq_len(n), function(i) {
+    inner = colSums(rect_lt <= rects[i, 1:2] & rects[i, 3:4] <= rect_rb) == 2
+    inner[i] = FALSE
+    return (inner)
+  }, logical(n))
+  idx = which(r_in_c, arr.ind = TRUE)
+
+  browser()
+}
