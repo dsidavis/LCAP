@@ -204,7 +204,17 @@ lines_to_cells = function(lines, xtol = 5, ytol = xtol) {
 }
 
 
-lines_to_cells2 = function(lines, tol_x = 5, tol_y = tol_x) {
+lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
+  # Ensure there are horizontals at the top and bottom of the page.
+  far_lt = min(lines[, 1])
+  far_tp = min(lines[, 2])
+  far_rt = max(lines[, 3])
+  far_bt = max(lines[, 4])
+  lines = rbind(lines,
+    c(far_lt, far_tp, far_rt, far_tp), # top
+    c(far_lt, far_bt, far_rt, far_bt)  # bottom
+  )
+
   lines = split_lines_hv(lines)
 
   hz = simplify_lines_hz(lines$hz, tol_line = 5, tol_join = tol_x * 2)
@@ -213,114 +223,78 @@ lines_to_cells2 = function(lines, tol_x = 5, tol_y = tol_x) {
   plot_pdf_lines(do.call(rbind, hz), col = "orange")
   plot_pdf_lines(vt, col = "violet")
 
-  # Need to keep track of:
-  # * cells
-  # * "active" lines & their tops
-
   cells = NULL
-  running   = logical(nrow(vt))
-  running_y = numeric(nrow(vt))
+  connect = matrix(FALSE, nrow(vt), nrow(vt))
+  mask = lower.tri(connect, TRUE)
+  old_y = rep_len(NA_real_, nrow(vt))
 
-  for (hz_a in hz) {
+  for (i in seq_along(hz)) {
+    hz_a = hz[[i]]
     y = hz_a[1, 2]
 
     abline(h = y, lty = "dashed", col = "gray80")
 
-    # Active Verticals
+    # Select Verticals
     # ----------------
-    vt_a = vt
+    a = seq_len(nrow(vt))
 
-    # Ignore verticals with bottom above or top below the sweep line.
-    # NOTE: Sorting the verticals by bottoms could make this more efficient.
-    in_y = 
-      y - tol_y <= vt_a[, 4] &  # sweep starts before vertical ends
-      vt_a[, 2] <= y + tol_y    # vertical starts before sweep ends
+    in_y = y - tol_y <= vt[a, 4] &  # sweep starts before vertical ends
+           vt[a, 2] <= y + tol_y    # vertical starts before sweep ends
     if (!any(in_y))
       next
-    vt_a = vt_a[in_y, , drop = FALSE]
+    a = a[in_y]
 
-    # Ignore verticals that don't intersect segments on the sweep line.
-    which_x = which_segment(vt_a[, 1], hz_a[, c(1, 3)], tol_x)
+    which_x = which_segment(vt[a, 1], hz_a[, c(1, 3)], tol_x)
     in_x = !is.na(which_x)
     if (!any(in_x))
       next
-    vt_a = vt_a[in_x, , drop = FALSE]
     which_x = which_x[in_x]
+    a = a[in_x]
 
-    # Groups
-    # ------
-    top = y - tol_y <= vt_a[, 2]  # sweep starts before vertical starts
-    bot = vt_a[, 4] <= y + tol_y  # vertical ends before sweep ends
+    # Detect Rectangles
+    # -----------------
+    # FIXME:
+    top = y - tol_y <= vt[a, 2]  # sweep starts before vertical starts
+    bot = vt[a, 4] <= y + tol_y  # vertical ends before sweep ends
     mid = !(top | bot)
 
-    if (any(running)) {
-      ends = (bot | mid) & running[in_y][in_x]
-      if (sum(ends) > 1) {
-        which_x = which_x[ends]
-        is_closed = head(which_x, -1) == tail(which_x, -1)
+    # TODO: combine loops into one loop over segments.
 
-        if (any(is_closed)) {
-          x = vt_a[ends, 1]
-          x1 = head(x, -1)
-          x2 = tail(x, -1)
+    # Close a rectangle for each pair of mid | bot.
+    end = mid | (bot & !top)
+    corners_set = split(a[end], which_x[end])
+    for (corners in corners_set) {
+      if (length(corners) > 1) {
+        lt  = head(corners, -1)
+        is_con = apply(connect[lt, corners, drop = FALSE], 1,
+          function(r) match(TRUE, r)
+        )
+        rt = corners[is_con]
 
-          y1 = head(running_y[in_y][in_x][ends], -1)
+        regions = cbind(vt[lt, 1], old_y[lt], vt[rt, 3], y, deparse.level = 0)
+        cells = rbind(cells, regions)
 
-          new_cells = rbind(x1, y1, x2, y, deparse.level = 0)[, is_closed]
-          cells = cbind(cells, new_cells)
-
-          rect(cells[1, ], cells[2, ], cells[3, ], cells[4, ],
-            border = "green")
-
-          browser()
-
-          # FIXME: Only add tops for non-protruding segments.
-          # Possibly use findInterval?
-          running_y[in_y][in_x][head(which(ends), -1)] = y
-          running[in_y][in_x][top] = TRUE
-          running_y[in_y][in_x][top] = y
-        }
+        rect(regions[, 1], regions[, 2], regions[, 3], regions[, 4],
+          border = "green")
       }
+    } 
 
-      running[in_y][in_x][bot] = FALSE
-      running_y[in_y][in_x][bot] = 0
+    # Open a rectangle for each pair of top | mid.
+    begin = mid | (top & !bot)
+    corners_set = split(a[begin], which_x[begin])
+    for (corners in corners_set) {
+      if (length(corners) > 1) {
+        lt = head(corners, -1)
+        connect[lt, corners] = TRUE
+        old_y[lt] = y
 
-    } else {
-      running[in_y][in_x][top & !bot] = TRUE
-      running_y[running] = y
+        points(vt[corners, 1], rep_len(y, length(corners)), cex = 0.5)
+      }
     }
+    connect[mask] = FALSE
   }
 
-  # ---
-  #for (hz_a in hz) {
-  #  y = hz_a[1, 2]
-  #  # Ignore verticals with bottom above or top below the sweep line.
-  #  # NOTE: Sorting the verticals by bottoms could make this more efficient.
-  #  active_y = 
-  #    y - tol_y <= vt[, 4] | # sweep starts before vertical ends
-  #    vt[, 2]   <= y + tol   # vertical starts before sweep ends
-  #  if (!any(active_y))
-  #    next
-  #  vt_a = vt[active_y, , drop = FALSE]
-
-  #  # Ignore verticals that don't intersect segments on the sweep line.
-  #  active_x = in_interval(hz_a[, 1] - xtol, vt_a[, 1], hz_a[, 3] + xtol)
-  #  if (!any(active_x))
-  #    next
-  #  vt_a = vt_a[active_x, , drop = FALSE]
-
-  #  # Group the remaining verticals into tops, mids, or bottoms.
-  #  top = y - tol_y <= vt_a[, 2] # sweep starts before vertical starts
-  #  bot = vt_a[, 4] <= y + tol_y # vertical ends before sweep ends
-  #  mid = !(top | bot)
-  #  
-  #  # Close rectangles for verticals that are running.
-  #  # Check for completed rectangles.
-  #  # TODO: keep track of "open" space so that it can be closed correctly.
-
-  #  # Mark tops as running.
-  #  running[active][top] = TRUE
-  #}
+  return (cells[rowSums(is.na(cells)) == 0, ])
 }
 
 

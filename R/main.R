@@ -12,7 +12,7 @@ source("plot_geometry.R")
 
 
 main = function() {
-  files = list.files("../xml", "LCAP_2015", full.names = TRUE)
+  #files = list.files("../xml", "LCAP_2015", full.names = TRUE)
   #files = files[-c(36, 698, 764)]
 
   # FIXME: tables broken across pages do not have bottom lines
@@ -22,7 +22,10 @@ main = function() {
   #files = "../xml/AdelantoElementary_LCAP_2015.2018.xml"
 
   # FIXME:
+  #files = "../xml/ABCUnified_LCAP_2015.2018.xml"
   files = "../xml/Alameda_AlamedaUnified_LCAP_2015.2016.xml"
+  #files = "../xml/Alameda_BerkeleyUnified_LCAP_2015.2018.xml"
+  #files = "../foo.xml"
 
   # Memory
   # ======
@@ -48,12 +51,13 @@ main = function() {
     page = pages[[1]]
 
     plot_pdf_new(page)
+    lines = pdf_bbox(xml_find_all(page, "./line"))
     rects = pdf_bbox(xml_find_all(page, "./rect"))
     #rect(rects[, 1], rects[, 2], rects[, 3], rects[, 4], border = "red",
     #  col = "white")
-    lines = rects_to_lines(rects)
+    lines = rbind(lines, rects_to_lines(rects))
     #rapply(lines, plot_pdf_lines)
-    lines_to_cells2(lines)
+    cells = lines_to_cells2(lines, 5, 5)
 
     browser()
   }#)
