@@ -3,19 +3,12 @@
 #
 # Entry point for PDF data extraction.
 
-library(dplyr)
-library(stringr)
-library(tidyr)
-library(xml2)
 
-source("pdf_xml.R")
-source("geometry.R")
-source("plot_geometry.R")
-
-printf = function(fmt, ...) cat(sprintf(fmt, ...))
-
-main = function() {
-  files = list.files("../xml", "LCAP_2015", full.names = TRUE)
+#' Extract LCAP Section 2 Tables
+#'
+#' @export
+sec2 = function() {
+  files = list.files("xml", "LCAP_2015", full.names = TRUE)
   #files = files[-c(36, 698, 764)]
 
   # FIXME: tables broken across pages do not have bottom lines
@@ -31,32 +24,32 @@ main = function() {
 
   # Quarantine bad PDFs
   files = files[!(files %in% c(
-    "../xml/Acton-AguaDulceUnified_LCAP_2015.2018.xml"  # lines around page
-    , "../xml/AdelantoElementary_LCAP_2015.2018.xml"    # hz for dashed vt
-    , "../xml/Alameda_CastroValleyUnified_LCAP_2015.2018.xml" # no lines
-    , "../xml/Alameda_DublinUnified_LCAP_2015.2018.xml" # rows over 3 pages
-    , "../xml/Alameda_EmeryUnified_LCAP_2015.2016.xml"  # rows over 3 pages
-    , "../xml/Alameda_FremontUnified_LCAP_2015.2016.xml" # no lines
+    "xml/Acton-AguaDulceUnified_LCAP_2015.2018.xml"  # lines around page
+    , "xml/AdelantoElementary_LCAP_2015.2018.xml"    # hz for dashed vt
+    , "xml/Alameda_CastroValleyUnified_LCAP_2015.2018.xml" # no lines
+    , "xml/Alameda_DublinUnified_LCAP_2015.2018.xml" # rows over 3 pages
+    , "xml/Alameda_EmeryUnified_LCAP_2015.2016.xml"  # rows over 3 pages
+    , "xml/Alameda_FremontUnified_LCAP_2015.2016.xml" # no lines
     # lines around page
-    , "../xml/Alameda_LivermoreValleyJointUnified_LCAP_2015.2016.xml"
-    , "../xml/Alameda_NewarkUnified_LCAP_2015.2016.xml" # no lines
-    , "../xml/Alameda_NewHavenUnified_LCAP_2015.2018.xml" # no lines
-    , "../xml/Alameda_OaklandUnified_LCAP_2015.2018.xml" # hz for dashed vt
+    , "xml/Alameda_LivermoreValleyJointUnified_LCAP_2015.2016.xml"
+    , "xml/Alameda_NewarkUnified_LCAP_2015.2016.xml" # no lines
+    , "xml/Alameda_NewHavenUnified_LCAP_2015.2018.xml" # no lines
+    , "xml/Alameda_OaklandUnified_LCAP_2015.2018.xml" # hz for dashed vt
     # memory:
-    , "../xml/Amador_AmadorCountyUnified_LCAP_2015.2016.xml"
-    , "../xml/SpreckelsUnionElementary_LCAP_2015.2016.xml"
-    , "../xml/WeaverUnion_LCAP_2015.2016.xml"
+    , "xml/Amador_AmadorCountyUnified_LCAP_2015.2016.xml"
+    , "xml/SpreckelsUnionElementary_LCAP_2015.2016.xml"
+    , "xml/WeaverUnion_LCAP_2015.2016.xml"
   ))]
 
   files = data_frame(xml = files)
   files$rds = str_replace(basename(files$xml), "[.]xml$", ".rds")
-  files$rds = file.path("..", "data", files$rds)
+  files$rds = file.path("data", files$rds)
   files$tol_x = 5
   files$tol_y = 5
 
   # Set a lower tolerance for some files.
   low_tol = files$xml %in% c(
-    "../xml/Alameda_AlamedaUnified_LCAP_2015.2016.xml" # 3 3
+    "xml/Alameda_AlamedaUnified_LCAP_2015.2016.xml" # 3 3
   )
   files$tol_x[low_tol] = 3
   files$tol_y[low_tol] = 3

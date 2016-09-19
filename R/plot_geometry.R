@@ -3,20 +3,31 @@
 #
 # Functions for plotting PDF geometry.
 
-library(xml2)
 
-
+#' Plot PDF Lines
+#'
+#' @param x (numeric) A matrix of lines.
+#' @param ... Further arguments to the matlines function.
 plot_pdf_lines = function(x, lty = 1, col = 1, ...) {
   tx = t(x)
   matlines(tx[c(1, 3), ], tx[c(2, 4), ], lty = lty, col = col, ...)
 }
 
 
+#' Plot PDF Rects
+#'
+#' @param x (numeric) A matrix of rects.
+#' @param ... Further arguments to the rect function.
 plot_pdf_rects = function(x, ...) {
   rect(x[, 1], x[, 2], x[, 3], x[, 4], ...)
 }
 
 
+#' New PDF Page Plot
+#'
+#' This function opens a blank plot sized for a PDF page.
+#'
+#' @param page A page node from an XML-converted PDF.
 plot_pdf_new = function(page, ...) {
   attrs = xml_attrs(page)
   xlim = as.numeric(attrs[c("left", "width")])
@@ -34,7 +45,7 @@ plot_pdf_new = function(page, ...) {
 #' This function plots the geometry in a page node from an XML-converted PDF.
 #'
 #' @param page A page node from an XML-converted PDF.
-plot_pdf_page = function(page, ...) {
+plot_pdf_page = function(page) {
   plot_pdf_new(page)
 
   # Plot all lines.

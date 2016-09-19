@@ -18,6 +18,11 @@ This is a collection of scripts for extracting data from LCAPs.
 
 ## Examples
 
+Row with 3 blank columns in actions table (p. 30):
+```
+data/Alameda_BerkeleyUnified_LCAP_2015.2018.pdf
+```
+
 LCAPs that do not have "Annual Update Instructions" after the first goals table
 in section 2:
 ```

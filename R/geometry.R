@@ -68,6 +68,8 @@ simplify_lines_hz = function(lines, tol_line = 0, tol_join = 0) {
 }
 
 
+#' Union Segments
+#'
 union_segments = function(begins, ends, tol = 0) {
   ord = order(begins, ends, decreasing = FALSE)
   n = length(ord)
@@ -266,6 +268,8 @@ lines_to_cells = function(lines, tol_x = 5, tol_y = tol_x, plot = FALSE) {
   #cells2 = cells2[!is_nested(cells2), ]
 
 
+#' Group Cells By Row
+#'
 cells_to_rows = function(cells, tol = 5) {
   # NOTE: the row detection below might fail if there are nested cells.
   cells = cells[!is_nested(cells), ]
@@ -319,37 +323,4 @@ which_rect = function(x, rects) {
   apply(x, 1, function(x_) {
     match(TRUE, pt_in_rects(x_, rects, open_rb = TRUE))
   })
-}
-#  rects_lb = t(rects[, 1:2])
-#  rects_rt = t(rects[, 3:4])
-#
-#  apply(x, 1, function(r) {
-#    match(TRUE, .in_rects(r, rects_lb, rects_rt))
-#  })
-#}
-
-
-.in_rects = function(pt, rects_lb, rects_rt) {
-  colSums(rects_lb <= pt & pt < rects_rt) == 2
-}
-
-
-# UNUSED:
-in_interval = function(a, x, b) {
-  (findInterval(x, as.vector(rbind(a, b))) %% 2) == 1
-}
-
-
-# UNUSED:
-# Approximately 5x slower than in_interval().
-in_interval2 = function(a, x, b, include_ends = FALSE) {
-  if (include_ends) {
-    op1 = `<=`
-    op2 = `>=`
-  } else {
-    op1 = `<`
-    op2 = `>`
-  }
-
-  colSums( outer(a, x, op1) & outer(b, x, op2) ) > 0
 }
