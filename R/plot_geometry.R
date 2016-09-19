@@ -6,10 +6,14 @@
 library(xml2)
 
 
-plot_pdf_lines = function(lines, ...) {
-  apply(lines, 1, function(x) {
-    lines(x[c(1, 3)], x[c(2, 4)], ...)
-  })
+plot_pdf_lines = function(x, lty = 1, col = 1, ...) {
+  tx = t(x)
+  matlines(tx[c(1, 3), ], tx[c(2, 4), ], lty = lty, col = col, ...)
+}
+
+
+plot_pdf_rects = function(x, ...) {
+  rect(x[, 1], x[, 2], x[, 3], x[, 4], ...)
 }
 
 

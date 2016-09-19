@@ -12,6 +12,9 @@
 #'
 #' @return (list) A list of matrices, one for each set of colinear segments.
 simplify_lines_vt = function(lines, tol_line = 0, tol_join = 0) {
+  # Remove extremely short lines.
+  lines = lines[lines[4, ] - lines[2, ] > tol_join, ]
+
   # Group lines by horizontal distance.
   lines = lines[order(lines[, 1]), ]
   groups = cumsum( c(FALSE, diff(lines[, 1]) > tol_line) )
@@ -41,6 +44,9 @@ simplify_lines_vt = function(lines, tol_line = 0, tol_join = 0) {
 #'
 #' @return (list) A list of matrices, one for each set of colinear segments.
 simplify_lines_hz = function(lines, tol_line = 0, tol_join = 0) {
+  # Remove extremely short lines.
+  lines = lines[lines[3, ] - lines[1, ] > tol_join, ]
+
   # Group lines by vertical distance.
   lines = lines[order(lines[, 2]), ]
   groups = cumsum( c(FALSE, diff(lines[, 2]) > tol_line) )
@@ -142,69 +148,12 @@ rects_to_lines = function(rects) {
 #' Convert Lines To Cells
 #'
 #' @param lines (numeric) A matrix of line coordinates.
-#' @param xtol (numeric) The tolerance for TODO
-#' @param ytol (numeric) The tolerance for TODO
+#' @param tol_x (numeric) The tolerance for joining lines along the x-axis.
+#' @param tol_y (numeric) The tolerance for joining lines along the y-axis
+#' @param plot (logical) If TRUE, plot cell detection information.
 #'
-#' @return A matrix of cell (non-overlapping rectangle) coordinates.
-lines_to_cells = function(lines, xtol = 5, ytol = xtol) {
-  lines = split_lines_hv(lines)
-
-  hz = simplify_lines_hz(lines$hz, tol_line = 5, tol_join = xtol * 2)
-  vt = do.call(rbind, simplify_lines_vt(lines$vt, tol_line = 5, tol_join = 1))
-
-  regions = NULL
-  y_below = numeric(nrow(vt))
-
-  for (hz_a in hz) {
-    # Ignore verticals outside the scanline's x-intervals.
-    active = in_interval(hz_a[, 1] - xtol, vt[, 1], hz_a[, 3] + xtol)
-    if (!any(active))
-      next
-    vt_a = vt[active, , drop = FALSE]
-
-    # Find verticals that start on, intersect, or end on the scanline.
-    y = hz_a[1, 2]
-    top = y - ytol < vt_a[, 2] & vt_a[, 2] < y + ytol
-    mid = vt_a[, 2] < y & y < vt_a[, 4]
-    bot = y - ytol < vt_a[, 4] & vt_a[, 4] < y + ytol
-
-    # FIXME:
-    abline(h = y, lty = "dashed", col = "gray80")
-    #points(vt_a[top, 1], rep_len(y, sum(top)), cex = 0.5, pch = 6)
-    #points(vt_a[mid, 1], rep_len(y, sum(mid)), cex = 0.5, pch = 5)
-    #points(vt_a[bot, 1], rep_len(y, sum(bot)), cex = 0.5, pch = 2)
-
-    # Check for completed rectangles.
-    ends = (bot | mid) & !top
-    if (sum(ends) > 1) {
-      ends = which(ends)
-      x = vt_a[ends, 1]
-      ybottom = y_below[active][head(ends, -1)]
-
-      regions = cbind(regions,
-        rbind(head(x, -1), ybottom, tail(x, -1), y, deparse.level = 0)
-      )
-
-      browser() 
-
-      # FIXME:
-      rect(regions[1, ], regions[2, ], regions[3, ], regions[4, ],
-        border = "black", lty = "dotted", col = "gray80")
-
-      y_below[active][head(ends, -1)] = y
-    }
-
-    y_below[active][top] = y
-  }
-
-  if (!is.null(regions))
-    regions = t(regions)
-
-  return (regions)
-}
-
-
-lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
+#' @return A matrix of cell (rectangle) coordinates.
+lines_to_cells = function(lines, tol_x = 5, tol_y = tol_x, plot = FALSE) {
   # Ensure there are horizontals at the top and bottom of the page.
   far_lt = min(lines[, 1])
   far_tp = min(lines[, 2])
@@ -218,10 +167,13 @@ lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
   lines = split_lines_hv(lines)
 
   hz = simplify_lines_hz(lines$hz, tol_line = 5, tol_join = tol_x * 2)
-  vt = do.call(rbind, simplify_lines_vt(lines$vt, tol_line = 5, tol_join = 1))
+  vt = simplify_lines_vt(lines$vt, tol_line = 2, tol_join = tol_y * 2)
+  vt = do.call(rbind, vt)
 
-  plot_pdf_lines(do.call(rbind, hz), col = "orange")
-  plot_pdf_lines(vt, col = "violet")
+  if (plot) {
+    plot_pdf_lines(do.call(rbind, hz), col = "orange")
+    plot_pdf_lines(vt, col = "violet")
+  }
 
   cells = NULL
   connect = matrix(FALSE, nrow(vt), nrow(vt))
@@ -232,7 +184,7 @@ lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
     hz_a = hz[[i]]
     y = hz_a[1, 2]
 
-    abline(h = y, lty = "dashed", col = "gray80")
+    if (plot) abline(h = y, lty = "dashed", col = "gray80")
 
     # Select Verticals
     # ----------------
@@ -253,7 +205,6 @@ lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
 
     # Detect Rectangles
     # -----------------
-    # FIXME:
     top = y - tol_y <= vt[a, 2]  # sweep starts before vertical starts
     bot = vt[a, 4] <= y + tol_y  # vertical ends before sweep ends
     mid = !(top | bot)
@@ -274,8 +225,9 @@ lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
         regions = cbind(vt[lt, 1], old_y[lt], vt[rt, 3], y, deparse.level = 0)
         cells = rbind(cells, regions)
 
-        rect(regions[, 1], regions[, 2], regions[, 3], regions[, 4],
-          border = "green")
+        if (plot)
+          rect(regions[, 1], regions[, 2], regions[, 3], regions[, 4],
+            border = "green")
       }
     } 
 
@@ -288,15 +240,46 @@ lines_to_cells2 = function(lines, tol_x = 2, tol_y = tol_x) {
         connect[lt, corners] = TRUE
         old_y[lt] = y
 
-        points(vt[corners, 1], rep_len(y, length(corners)), cex = 0.5)
+        if (plot)
+          points(vt[corners, 1], rep_len(y, length(corners)), cex = 0.5)
       }
     }
     connect[mask] = FALSE
   }
+  
+  cells = cells[rowSums(is.na(cells)) == 0, ]
 
-  return (cells[rowSums(is.na(cells)) == 0, ])
+  return (cells)
 }
 
+  # Add virtual cells.
+  #x = unique(as.vector(cells[, c(1, 3)]))
+  ##x = cbind(head(x, -1), tail(x, -1))
+  #y = unique(as.vector(cells[, c(2, 4)]))
+  #ny = length(y) - 1
+  #z = cbind(
+  #  rep(head(x, -1), each = ny), head(y, -1),
+  #  rep(tail(x, -1), each = ny), tail(y, -1),
+  #  deparse.level = 0
+  #)
+  #cells2 = rbind(cells, z)
+  #cells2 = cells2[!is_nested(cells2), ]
+
+
+cells_to_rows = function(cells, tol = 5) {
+  # NOTE: the row detection below might fail if there are nested cells.
+  cells = cells[!is_nested(cells), ]
+
+  cells = cells[order(cells[, 2], cells[, 1], decreasing = FALSE), ]
+
+  # Rows are determined by the heights of the leftmost cells.
+  is_leftmost = cells[, 1] <= min(cells[, 1]) + tol
+  row_id = findInterval(cells[, 2], cells[is_leftmost, 2])
+
+  cells = cbind(cells, row_id)
+
+  return (cells)
+}
 
 which_segment = function(x, segments, tol) {
   tol = tol * rep_len(c(-1, 1), length(segments))
@@ -308,11 +291,56 @@ which_segment = function(x, segments, tol) {
   return (idx)
 }
 
+
+# NOTE: For duplicated rectangles, both are marked as nested.
+is_nested = function(rects) {
+  rects_lb = t(rects[, 1:2])
+  rects_rt = t(rects[, 3:4])
+
+  vapply(seq_len(nrow(rects)), function(i) {
+    any(
+      pt_in_rects(rects[i, 1:2], rects)[-i] &
+      pt_in_rects(rects[i, 3:4], rects)[-i]
+    )
+  }, logical(1))
+}
+
+
+pt_in_rects = function(x, rects, open_rb = FALSE) {
+  `%<%` = if (open_rb) `<` else `<=`
+  return (
+    rects[, 1] <= x[1] & x[1] %<% rects[, 3] & # x inside
+    rects[, 2] <= x[2] & x[2] %<% rects[, 4]   # y inside
+  )
+}
+
+
+which_rect = function(x, rects) {
+  apply(x, 1, function(x_) {
+    match(TRUE, pt_in_rects(x_, rects, open_rb = TRUE))
+  })
+}
+#  rects_lb = t(rects[, 1:2])
+#  rects_rt = t(rects[, 3:4])
+#
+#  apply(x, 1, function(r) {
+#    match(TRUE, .in_rects(r, rects_lb, rects_rt))
+#  })
+#}
+
+
+.in_rects = function(pt, rects_lb, rects_rt) {
+  colSums(rects_lb <= pt & pt < rects_rt) == 2
+}
+
+
+# UNUSED:
 in_interval = function(a, x, b) {
   (findInterval(x, as.vector(rbind(a, b))) %% 2) == 1
 }
 
 
+# UNUSED:
 # Approximately 5x slower than in_interval().
 in_interval2 = function(a, x, b, include_ends = FALSE) {
   if (include_ends) {
@@ -324,24 +352,4 @@ in_interval2 = function(a, x, b, include_ends = FALSE) {
   }
 
   colSums( outer(a, x, op1) & outer(b, x, op2) ) > 0
-}
-
-
-pt_in_rect = function(pt, rect) {
-  rect[1:2] <= pt & pt <= rect[3:4]
-}
-
-contains_rect = function(rects) {
-  rect_lt = t(rects[, 1:2])
-  rect_rb = t(rects[, 3:4])
-
-  n = nrow(rects)
-  r_in_c = vapply(seq_len(n), function(i) {
-    inner = colSums(rect_lt <= rects[i, 1:2] & rects[i, 3:4] <= rect_rb) == 2
-    inner[i] = FALSE
-    return (inner)
-  }, logical(n))
-  idx = which(r_in_c, arr.ind = TRUE)
-
-  browser()
 }
