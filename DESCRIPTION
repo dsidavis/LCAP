@@ -1,0 +1,18 @@
+Package: lcap.sec2
+Title: Read LCAP Section 2
+Description: 2016 DSI project to read LCAP Section 2
+Version: 0.1-1
+Authors@R: c(
+  person("Nick", "Ulle", role = c("aut", "cre"),
+    email = "nick.ulle@gmail.com"),
+  person("Duncan", "Temple Lang", role = "aut",
+    email = "duncan@r-project.org")
+  )
+Depends:
+    R (>= 3.1.0),
+    dplyr,
+    stringr,
+    tidyr,
+    xml2
+LazyData: true
+RoxygenNote: 5.0.1

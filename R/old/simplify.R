@@ -1,4 +1,9 @@
-# remove all but the first four pages.
+#
+# simplify.R
+#
+# Remove all but the first four pages.
+
+
 doc = htmlParse("Winton_LCAP_2015.2018.html")
 p = getNodeSet(doc, "//div[@data-page-no]")
 length(p)
