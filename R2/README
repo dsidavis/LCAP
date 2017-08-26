@@ -1,0 +1,44 @@
+Second set of data extraction, August 2017.
+
+No font information:
+BeniciaUnified_LCAP_2015.2016.xml
+
+Alameda_AlamedaUnified_LCAP_2015.2016.xml
+Alameda_FremontUnified_LCAP_2015.2016.xml
+AlvinaElem_LCAP_2015.2016.xml
+
+
+
+
+Of 249 LCAPS so far, in 18 we don't get the Supplemental Total
+totals = lapply(x, function(x) try(getSupplementalTotal(x)))
+The following are NOT SCANNED
+[10] "../Jacob/Data/ChatomUnion_LCAP_2015.2016.xml"
+   [Fixed now] findSupplementaTotal() works on page 44. There is no text, just an <img>
+   But when searching for the page, nodesByLine() fails on page 46 which
+    is both scanned and rotated.
+[11] "../Jacob/Data/ClearCreekElementary_LCAP_2015.2016.xml"
+   [Fixed] - no 'grant funds' at the end of the 'Total amount of Supplemental...'
+[14] "../Jacob/Data/ContraCosta_BrentwoodUnionElementary_LCAP_2015.2016.xml"
+   [Fixed] Needed to increase the distance between the tops of each node on the same line.
+     Increased to < 7
+[16] "../Jacob/Data/CuyamaJointUnified_LCAP_2015.2016.xml"
+    [Fixed] needed lower case comparisons.
+
+
+These are scanned.
+ [1] "../Jacob/Data/Amador_AmadorCountyUnified_LCAP_2015.2016.xml"          
+ [2] "../Jacob/Data/BelleviewElementary_LCAP_2015.2016.xml"                 
+ [3] "../Jacob/Data/BigOakFlat-GrovelandUnified_LCAP_2015.2016.xml"         
+ [4] "../Jacob/Data/BigPineUnified_LCAP_2015.2016.xml"                      
+ [5] "../Jacob/Data/BishopUnified_LCAP_2015.2016.xml"                       
+ [6] "../Jacob/Data/BlueLakeUnion_LCAP_2015.2016.xml"                       
+ [7] "../Jacob/Data/Bolinas-StinsonUnion_LCAP_2015.2016.xml"                
+ [8] "../Jacob/Data/CalexicoUnified_LCAP_2015.2016.xml"                     
+ [9] "../Jacob/Data/CalipatriaUnified_LCAP_2015.2016.xml"                   
+[12] "../Jacob/Data/ColumbiaUnion_LCAP_2015.2016.xml"                       
+[13] "../Jacob/Data/Colusa_MaxwellUnified_LCAP_2015.2016.xml"               
+[15] "../Jacob/Data/CurtisCreekElementary_LCAP_2015.2016.xml"               
+[17] "../Jacob/Data/DeathValleyUnified_LCAP_2015.2016.xml"                  
+[18] "../Jacob/Data/ElCentroElementary_LCAP_2015.2016.xml"
+
