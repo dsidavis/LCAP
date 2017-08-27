@@ -13,6 +13,10 @@ AlvinaElem_LCAP_2015.2016.xml
 Of 249 LCAPS so far, in 18 we don't get the Supplemental Total
 totals = lapply(x, function(x) try(getSupplementalTotal(x)))
 The following are NOT SCANNED
+
+"../Jacob/Data/Jamula-DalzuraUnionElementary_LCAP_2015.2016.xml"
+  pdftohtml puts ( instead of spaces!
+
 [10] "../Jacob/Data/ChatomUnion_LCAP_2015.2016.xml"
    [Fixed now] findSupplementaTotal() works on page 44. There is no text, just an <img>
    But when searching for the page, nodesByLine() fails on page 46 which
@@ -26,8 +30,10 @@ The following are NOT SCANNED
     [Fixed] needed lower case comparisons.
 
 
+ [1] "../Jacob/Data/Amador_AmadorCountyUnified_LCAP_2015.2016.xml"
+   Rotated
+
 These are scanned.
- [1] "../Jacob/Data/Amador_AmadorCountyUnified_LCAP_2015.2016.xml"          
  [2] "../Jacob/Data/BelleviewElementary_LCAP_2015.2016.xml"                 
  [3] "../Jacob/Data/BigOakFlat-GrovelandUnified_LCAP_2015.2016.xml"         
  [4] "../Jacob/Data/BigPineUnified_LCAP_2015.2016.xml"                      
@@ -41,4 +47,43 @@ These are scanned.
 [15] "../Jacob/Data/CurtisCreekElementary_LCAP_2015.2016.xml"               
 [17] "../Jacob/Data/DeathValleyUnified_LCAP_2015.2016.xml"                  
 [18] "../Jacob/Data/ElCentroElementary_LCAP_2015.2016.xml"
+[15] "../Jacob/Data/GrenadaElementary_LCAP_2015.2016.xml"                
+[16] "../Jacob/Data/HeberElementary_LCAP_2015.2016.xml"                  
+[17] "../Jacob/Data/HilmarUnified_LCAP_2015.2016.xml"                    
+[18] "../Jacob/Data/HoltvilleUnified_LCAP_2015.2016.xml"                 
+[19] "../Jacob/Data/ImperialUnified_LCAP_2015.2016.xml"                  
+[20] "../Jacob/Data/JamestownElementary_LCAP_2015.2016.xml"              
+[22] "../Jacob/Data/JanesvilleUnionElementary_LCAP_2015.2016.xml"        
+[23] "../Jacob/Data/JeffersonElementary_LCAP_2015.2016.xml"              
+[24] "../Jacob/Data/KingsCanyonJointUnified_LCAP_2015.2016.xml"          
+[25] "../Jacob/Data/KingsRiverHardwickUnionElementary_LCAP_2015.2016.xml"
 
+
+
+[26] "../Jacob/Data/LaHonda-PescaderoUnified_LCAP_2015.2016.xml"         
+
+
+
+
+
+
+########################
+
+getPctIncrease
+
+Some results have multiple nodes. Need to select the one within the box.
+
+../Jacob/Data/Alameda_SanLeandroUnified_LCAP_2015.2016.xml
+../Jacob/Data/AlpineUnionElementary_LCAP_2015.2016.xml
+../Jacob/Data/AppleValleyUnified_LCAP_2015.2016.xml
+../Jacob/Data/Aromas-SanJuanUnified_LCAP_2015.2016.xml
+../Jacob/Data/BeaumontUnified_LCAP_2015.2016.xml
+../Jacob/Data/BonitaUnified_LCAP_2015.2016.xml
+../Jacob/Data/BridgevilleElementary_LCAP_2015.2016.xml
+  The number is at the top of the next page.
+
+
+
+../Jacob/Data/BrisbaneElementary_LCAP_2015.2016.xml
+../Jacob/Data/CabrilloUnified_LCAP_2015.2016.xml
+  Both needed to allow space at the beginning of the string.
