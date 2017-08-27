@@ -72,6 +72,7 @@ These are scanned.
 getPctIncrease
 
 Some results have multiple nodes. Need to select the one within the box.
+pct = sapply(x[1:100], function(x) try(getPctIncrease(x)))
 
 ../Jacob/Data/Alameda_SanLeandroUnified_LCAP_2015.2016.xml
 ../Jacob/Data/AlpineUnionElementary_LCAP_2015.2016.xml
