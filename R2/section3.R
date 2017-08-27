@@ -89,7 +89,7 @@ function(page)
     colored = (col != "0,0,0")
     if(!any(colored))
        return(NULL)
-    
+#browser()    
     tmp = bx[colored, , drop = FALSE]
     cb = c(range(tmp[, c(1,3)]), range(tmp[, c(1,3)+1]))
     wd = bx[,3] - bx[,1]
