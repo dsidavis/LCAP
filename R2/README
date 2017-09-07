@@ -8,6 +8,9 @@ Alameda_FremontUnified_LCAP_2015.2016.xml
 AlvinaElem_LCAP_2015.2016.xml
 
 
+Alameda_AlamedaUnified_LCAP_2015.2016.xml
+  Page Rotated 90 and then the text 180 degrees
+
 
 
 Of 249 LCAPS so far, in 18 we don't get the Supplemental Total
@@ -17,11 +20,11 @@ The following are NOT SCANNED
 "../Jacob/Data/Jamula-DalzuraUnionElementary_LCAP_2015.2016.xml"
   pdftohtml puts ( instead of spaces!
 
-[10] "../Jacob/Data/ChatomUnion_LCAP_2015.2016.xml"
+[10] "../Jacob/Data/ChatomUnion_LCAP_2015.2016.xml"   (18.79%)
    [Fixed now] findSupplementaTotal() works on page 44. There is no text, just an <img>
    But when searching for the page, nodesByLine() fails on page 46 which
     is both scanned and rotated.
-[11] "../Jacob/Data/ClearCreekElementary_LCAP_2015.2016.xml"
+[11] "../Jacob/Data/ClearCreekElementary_LCAP_2015.2016.xml"  5.95%
    [Fixed] - no 'grant funds' at the end of the 'Total amount of Supplemental...'
 [14] "../Jacob/Data/ContraCosta_BrentwoodUnionElementary_LCAP_2015.2016.xml"
    [Fixed] Needed to increase the distance between the tops of each node on the same line.
@@ -71,20 +74,104 @@ These are scanned.
 
 getPctIncrease
 
+pct = sapply(x, function(x) try(getPctIncrease(x)))
+names(pct) = x
+
+675 documents
+36 return length 0
+  Now down to 6
+92 raise an error.
+  Some of these are scanned.
+  isScanned2 is expensive.
+
+
+Not Scanned
+"../Jacob/Data/Amador_AmadorCountyUnified_LCAP_2015.2016.xml"       - rotated
+../Jacob/Data/MonroeElementary_LCAP_2015.2016.xml
+
+
+
+"../Jacob/Data/ContraCosta_BrentwoodUnionElementary_LCAP_2015.2016.xml"
+ Error
+ 
+"../Jacob/Data/CuyamaJointUnified_LCAP_2015.2016.xml"
+  Empty result
+   No shaded box.
+  
 Some results have multiple nodes. Need to select the one within the box.
 pct = sapply(x[1:100], function(x) try(getPctIncrease(x)))
 
-../Jacob/Data/Alameda_SanLeandroUnified_LCAP_2015.2016.xml
-../Jacob/Data/AlpineUnionElementary_LCAP_2015.2016.xml
-../Jacob/Data/AppleValleyUnified_LCAP_2015.2016.xml
-../Jacob/Data/Aromas-SanJuanUnified_LCAP_2015.2016.xml
-../Jacob/Data/BeaumontUnified_LCAP_2015.2016.xml
-../Jacob/Data/BonitaUnified_LCAP_2015.2016.xml
 ../Jacob/Data/BridgevilleElementary_LCAP_2015.2016.xml
-  The number is at the top of the next page.
+  The number is at the top of the next page.   12.5
+
+
+../Jacob/Data/Alameda_SanLeandroUnified_LCAP_2015.2016.xml
+  Works 11.81
+../Jacob/Data/AlpineUnionElementary_LCAP_2015.2016.xml
+   Workds 3.51
+../Jacob/Data/AppleValleyUnified_LCAP_2015.2016.xml
+   Works 14.96
+../Jacob/Data/Aromas-SanJuanUnified_LCAP_2015.2016.xml
+   Works: 13.3 %
+../Jacob/Data/BeaumontUnified_LCAP_2015.2016.xml
+   Works: 8.21%
+../Jacob/Data/BonitaUnified_LCAP_2015.2016.xml
+   Works: 5.97
 
 
 
 ../Jacob/Data/BrisbaneElementary_LCAP_2015.2016.xml
+  4.05%
 ../Jacob/Data/CabrilloUnified_LCAP_2015.2016.xml
-  Both needed to allow space at the beginning of the string.
+  7.67  %
+
+Both needed to allow space at the beginning of the string.
+
+
+
+
+
+##
+"../Jacob/Data/YubaCityUnified_LCAP_2015.2016.xml"
+ The top of the getPctBox() is too low.
+ We've adjusted the threshold to accept this but the lines are wrong.
+ 
+[34] "../Jacob/Data/WoodlakeUnified_LCAP_2015.2016.xml"
+Fixed now
+   text slightly above the line.
+
+
+
+
+
+
+
+NOT SCANNED:
+"../Jacob/Data/WestsideElementary_LCAP_2015.2016.xml"            
+
+
+
+NO <text> elements:
+"../Jacob/Data/WeaverUnion_LCAP_2015.2016.xml"
+
+SCANNED:
+
+"../Jacob/Data/WestmorlandUnion_LCAP_2015.2016.xml"  (and rotated)
+../Jacob/Data/WillitsUnified_LCAP_2015.2016.xml
+
+
+
+
+
+[1] "../Jacob/Data/Alameda_LivermoreValleyJointUnified_LCAP_2015.2016.xml" 
+[2] "../Jacob/Data/BallardElementary_LCAP_2015.2016.xml"                   
+[3] "../Jacob/Data/ContraCosta_BrentwoodUnionElementary_LCAP_2015.2016.xml"
+[4] "../Jacob/Data/HelendaleElementary_LCAP_2015.2016.xml"                 
+[5] "../Jacob/Data/NuestroElementary_LCAP_2015.2016.xml"                   
+[6] "../Jacob/Data/SouthsideElementary_LCAP_2015.2016.xml"
+  pages 42-47 are very messed up
+   Some text blocked by white rectangle
+   pages are in wrong order
+   Talks about 45 total and 47 total pages.
+   
+
