@@ -1,3 +1,15 @@
+Parlier
+ 3995321.00  & 30%
+
+Jamula  - the pdftohtml is messing up and adding ( instead of space.
+            Now $ sign.
+RosedaleU - $ instead of space.
+
+SantaClaraU - actually empty.
+WillowGrove - empty
+
+[ok] OrangeU
+
 Second set of data extraction, August 2017.
 
 No font information:
@@ -66,23 +78,77 @@ These are scanned.
 [26] "../Jacob/Data/LaHonda-PescaderoUnified_LCAP_2015.2016.xml"         
 
 
-
-
-
-
 ########################
 
 getPctIncrease
 
-pct = sapply(x, function(x) try(getPctIncrease(x)))
-names(pct) = x
+pct = lapply(xml, function(x) try(getPctIncrease(x, asNodes = FALSE)))
+names(pct) = xml
+table(sapply(pct, class))
+w = sapply(pct, is, "try-error")
+scanned = sapply(xml[w], isScanned2, numPages = 5)
 
+table(sapply(pct[!w], length))
+
+Takes 96 seconds to compute pct.
 675 documents
-36 return length 0
-  Now down to 6
-92 raise an error.
-  Some of these are scanned.
-  isScanned2 is expensive.
+49 (was 92) raise an error.
+  47 appear to be scanned (table(scanned)) and 2 are not.
+  The 5 that are not raise an error because getPctPage() returns NULL.
+  3 fixed
+        [1] "../Jacob/Data/DosPalosOroLomaJointUnified_LCAP_2015.2016.xml"
+        [2] "../Jacob/Data/GonzalezUnified_LCAP_2015.2016.xml"           
+        [3] "../Jacob/Data/Ontario-Montclair_LCAP_2015.2016.xml"          
+
+  [4] "../Jacob/Data/ParlierUnified_LCAP_2015.2016.xml"             - rotated
+       And the word "Consistent" is broken across two <text> nodes.
+  [5] "../Jacob/Data/SaddlebackValleyUnified_LCAP_2015.2016.xml"
+       getPctPage() fails
+        So if we find the Supplemental number and go to the next page, we can find the % box.
+
+isScanned2 is expensive, *BUT* not if we limit the number of pages to determine whether it is scanned.
+
+Of the "successful" calls, 
+all return length 1.
+8 return logical values - all NA corresponding to no following page.
+  Used to be with asNodes = TRUE
+     140 return 2 values
+     477 return 1 value.
+
+The 6 with no value
+[1] "../Jacob/Data/Alameda_LivermoreValleyJointUnified_LCAP_2015.2016.xml"
+   4.76       (Total 4248602)
+[2] "../Jacob/Data/BallardElementary_LCAP_2015.2016.xml"
+   0.5  
+[3] "../Jacob/Data/ContraCosta_BrentwoodUnionElementary_LCAP_2015.2016.xml"
+   4.9
+[4] "../Jacob/Data/HelendaleElementary_LCAP_2015.2016.xml"
+  5.88
+[5] "../Jacob/Data/NuestroElementary_LCAP_2015.2016.xml"
+  8.88
+[6] "../Jacob/Data/SouthsideElementary_LCAP_2015.2016.xml"
+   appears to not be in the document
+
+
+The 8 with NAs
+[1] "../Jacob/Data/GilroyUnified_LCAP_2015.2016.xml"                
+[2] "../Jacob/Data/HopeElementary_Tulare_LCAP_2015.2016.xml"        
+[3] "../Jacob/Data/Jamula-DalzuraUnionElementary_LCAP_2015.2016.xml"
+[4] "../Jacob/Data/LoletaUnion_LCAP_2015.2016.xml"                  
+[5] "../Jacob/Data/MarkWestUnionElementary_LCAP_2015.2016.xml"      
+[6] "../Jacob/Data/RosedaleUnion_LCAP_2015.2016.xml"                
+[7] "../Jacob/Data/SequoiaUnionElementary_LCAP_2015.2016.xml"       
+[8] "../Jacob/Data/WestsideElementary_LCAP_2015.2016.xml"           
+
+
+Oxnard
+  1 on separate line from 18.4 is not being picked up. So getting 18.4 and not 18.41
+
+  <text top="243" left="63" width="26" height="15" font="1" rotation="0.000000">18.4</text>
+  <text top="261" left="63" width="8" height="15" font="1" rotation="0.000000">1</text>
+
+
+
 
 
 Not Scanned

@@ -1,0 +1,36 @@
+The following had no percent value
+pct = sapply(totals, `[`, "percent")
+
+ [1] "../Jacob/Data/Alameda_LivermoreValleyJointUnified_LCAP_2015.2016.xml" 
+ [2] "../Jacob/Data/BallardElementary_LCAP_2015.2016.xml"                   
+ [3] "../Jacob/Data/CienegaUnionElementary_LCAP_2015.2016.xml"              
+ [4] "../Jacob/Data/ContraCosta_BrentwoodUnionElementary_LCAP_2015.2016.xml"
+ [5] "../Jacob/Data/CuyamaJointUnified_LCAP_2015.2016.xml"                  
+ [6] "../Jacob/Data/FerndaleUnified_LCAP_2015.2016.xml"                     
+ [7] "../Jacob/Data/FresnoUnified_LCAP_2015.2016.xml"                       
+ [8] "../Jacob/Data/GilroyUnified_LCAP_2015.2016.xml"                       
+ [9] "../Jacob/Data/HelendaleElementary_LCAP_2015.2016.xml"                 
+[10] "../Jacob/Data/HopeElementary_Tulare_LCAP_2015.2016.xml"               
+[11] "../Jacob/Data/Jamula-DalzuraUnionElementary_LCAP_2015.2016.xml"       
+[12] "../Jacob/Data/LoletaUnion_LCAP_2015.2016.xml"                         
+[13] "../Jacob/Data/MarkWestUnionElementary_LCAP_2015.2016.xml"             
+[14] "../Jacob/Data/NuestroElementary_LCAP_2015.2016.xml"                   
+[15] "../Jacob/Data/OrangeUnified_LCAP_2015.2016.xml"                       
+[16] "../Jacob/Data/PetalumaCityElementary_LCAP_2015.2016.xml"              
+[17] "../Jacob/Data/PlanadaElementary_LCAP_2015.2016.xml"
+   
+[18] "../Jacob/Data/RosedaleUnion_LCAP_2015.2016.xml"
+  6.38   2,299,780.00
+[19] "../Jacob/Data/SantaClaraUnified_LCAP_2015.2016.xml"
+  empty in doc. Same for total.
+
+[20] "../Jacob/Data/SequoiaUnionElementary_LCAP_2015.2016.xml"
+   Not in document. Box removed.
+[21] "../Jacob/Data/SouthsideElementary_LCAP_2015.2016.xml"
+  4%   very messed up document
+[22] "../Jacob/Data/SpringvilleUnionElementary_LCAP_2015.2016.xml"
+ 6.37
+[23] "../Jacob/Data/WestsideElementary_LCAP_2015.2016.xml"
+ 31.95%	
+[24] "../Jacob/Data/WillowGroveUnionElementary_LCAP_2015.2016.xml"
+  empty in the doc. Same for total.

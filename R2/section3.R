@@ -2,24 +2,59 @@ getSupplementalTotal =
     #
     # numPages is how many pages isScanned2() checks. Don't need to do them all.
     #
-function(file, doc = readPDFXML(file), numPages = 5)
+function(file, doc = readPDFXML(file), numPages = 5, scanned = isScanned2(doc, numPages = numPages), within = 12)
 {
       # isScanned(doc) || isScanned2()
-    if(isScanned2(doc, numPages = numPages))
-       return(NA)
+    if(scanned)
+        return(NA)
     
     # Use of Supplemental and Concentration Grant funds and Proportionality
 #   sec3 = getNodeSet(doc, "//text[starts-with(., 'Section 3: Use of')]")
-
-    total = getNodeSet(doc, "//text[starts-with(lower-case(normalize-space(.)), 'total amount of supplemental and concentration')]")
+#browser()
+    total = getNodeSet(doc, "//text[starts-with(lower-case(normalize-space(.)), 'total amount of supplemental and concentration') and not(contains(., '....'))]")
 
     if(length(total)) {
-        top = as.integer(xmlGetAttr(total[[1]], "top"))
-        node = getNodeSet(xmlParent(total[[1]]), sprintf(".//text[abs(@top - %d) < 7 and contains(., '$')]", top))
-        return(trim(gsub(".*calculated:", "", xmlValue(node))))
+
+        # Perhaps we need to find the box containing the total
+        # node and then the text to the right of this
+        # See DelNorte_DelNorteUnified
+        # For now just any text with a $ and within vertical pts from
+        # the total node.
+        node = getNodeNear(total[[1]], within)
+        return(mkTotalValue( xmlValue(node)))
     }
 
-    findSupplementalTotal(doc)
+    findSupplementalTotal(doc, within)
+}
+
+getNodeNear =
+function(node, within = 12, page = xmlParent(node))
+{
+#browser()    
+    top = as.integer(xmlGetAttr(node, "top"))
+    pos = sum(as.integer(xmlAttrs(node)[c("left", "width")]))
+        #        return(getTotal(total[[1]],, top))
+        # and contains(., '$')
+    nodes = getNodeSet(page, sprintf(".//text[abs(@top - %d) < %d and @left > %d ]", top, within, pos - 20))
+    if(length(nodes) == 0) {
+            # e.g. DelNorte_D...
+            # The $ amount is one line down because the text of the box on the left spans two lines.
+          within = within * 1.5
+          nodes = getNodeSet(page, sprintf(".//text[abs(@top - %d) < %d and @left > %d ]", top, within, pos - 20))
+    }
+
+    return(nodes)
+}
+
+getTotal =
+function(node, page = xmlParent(node),
+         top = as.integer(xmlGetAttr(node, "top")))
+{
+    bb = getBBox(getNodeSet(page, ".//rect | .//line"))
+    o = order(abs(bb[, 2] - top))
+    r = unique(bb[o,2])[1:2]
+    tmp = getNodeSet(page, sprintf(".//text[@top >= %f and @top < %f]", r[1], r[2]))
+    mkTotalValue( xmlValue(tmp))
 }
 
 normalizeSpace =
@@ -29,26 +64,37 @@ function(x)
 }
 
 findSupplementalTotal =
-function(doc,
+function(doc, within = 12,
          pagesByLine = lapply(doc, function(x) nodesByLine(getNodeSet(x, ".//text"), asNodes = TRUE)))
 {
+browser()    
     w = lapply(pagesByLine,
                function(x)
-                  x[grepl('total amount of supplemental and concentration', normalizeSpace(names(x)),
+                  x[grepl('total amount of supplemental( and concentration)?', normalizeSpace(names(x)),
                           ignore.case = TRUE)])
     
     i = sapply(w, length) > 0
-    nodes = w[i][[1]]
-    trim(gsub(".*calculated:", "", names(nodes)))
+    if(!any(i))
+       return(NA)
+
+    nodes = w[i][[1]][[1]][[1]]
+    node = getNodeNear(nodes, within)
+    mkTotalValue(xmlValue(node))
 }
 
+mkTotalValue =
+function(str)    
+{
+    ans = gsub("[$,] ?", "", trim(gsub(".*calculated:", "", gsub("_", "", str))))
+    ans[ans != ""]
+}
 
 ###############################################################
 
 getPctIncrease =
 function(file, doc = readPDFXML(file), page = getPctPage(doc), asNodes = TRUE, followingPage = TRUE)
 {
-    browser()
+#    browser()
     if(followingPage == FALSE && is.null(page))
        return(NA)
     
@@ -68,16 +114,22 @@ function(file, doc = readPDFXML(file), page = getPctPage(doc), asNodes = TRUE, f
         box = getPctBox(page)
         if(is.null(box)) {
            if(followingPage)
-              return(getPctIncrease(page = getSibling(page), followingPage = FALSE))
+              return(getPctIncrease(page = getSibling(page), followingPage = FALSE, asNodes = asNodes))
            else
               return(NULL)
         }
         #        ok = bb[,1] > box[1] & bb[,1] + bb[,3] < box[3] & bb[, 2] > box[2] & bb[,2] + bb[,4] < box[4]
-        ok = cbind(left = bb[,1] < box[1],  right = bb[,1] + bb[,3] < box[3] , top = bb[, 2] >= box[2] - 1, bottom = bb[,2] + bb[,4] <= box[4]+ 5)
-        ok = bb[,1] < box[1] & bb[,1] + bb[,3] < box[3] & bb[, 2] >= box[2] -1 & bb[,2] + bb[,4] <= box[4]+ 5
-        nodes = nodes[ok]
+        if(FALSE) {
+#          ok = cbind(left = bb[,1] < box[1],  right = bb[,1] + bb[,3] < box[3] , top = bb[, 2] >= box[2] - 1, bottom = bb[,2] + bb[,4] <= box[4]+ 5)
+          ok = bb[,1] < box[1] & bb[,1] + bb[,3] < box[3] & bb[, 2] >= box[2] -1 & bb[,2] + bb[,4] <= box[4]+ 5
+          nodes = nodes[ok]
+        } else {
+          q = sprintf("@left < %f and (@left + @width) < %f and @top >= %f and (@top + @height) <= %f", box[1], box[3], box[2] - 1, box[4] + 5)
+          nodes = getNodeSet(page, sprintf(".//text[%s]", q))
+        }
+
     } else if(length(nodes) == 0)
-         return(getPctIncrease(page = getSibling(page)))
+         return(getPctIncrease(page = getSibling(page), asNodes = asNodes, followingPage = FALSE))
 
     if(!asNodes) 
        return(mkNum(paste(xmlValue(nodes), collapse = "")))
@@ -134,10 +186,13 @@ function(doc)
   ll = getNodeSet(doc, "//text[ contains(normalize-space(.), 'Consistent with the requirements of 5 CCR 15496') ]")
   if(length(ll) == 0)
       ll = getNodeSet(doc, "//text[contains(., 'Consistent')]")
+  if(length(ll) == 0)
+      ll = getNodeSet(doc, "//text[contains(., 'In the box below, identify the percentage')]")
+  
   if(length(ll))
       xmlParent(ll[[1]])
   else
-      NULL
+     stop("cannot identify Percent Page")
 }
 
 
