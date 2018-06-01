@@ -27,7 +27,7 @@ if(any(w))
   d$u[ (i+1)[w] ] = sapply(m[w], `[`, 2)
 
 
-out = file.path("../2017_18", paste0(gsub(" ", "_", XML:::trim(d$district)), ".pdf"))
+out = file.path("2017_18", paste0(gsub(" ", "_", XML:::trim(d$district)), ".pdf"))
 ans = mapply(function(u, f) {
         if(!file.exists(f))
             try(download.file(u, f))
@@ -45,3 +45,5 @@ dw = lapply(setdiff(d[b, 2], ""), function(x) try(download.file(x, "bob.pdf")))
 table(sapply(dw, class))
 
 d$got = !b
+saveRDS(d, "2017_18Status.rds")
+
