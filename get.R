@@ -1,6 +1,15 @@
 library(RCurl)
 library(XML)
 
+# Some (2) files are Word documents
+# The "Palo_Verde_Union_Elementary_(DOC).pdf" is not however.
+#  That is an odd file with a file magic number of 193204,
+
+# We get 110 HTML files.
+# 56 of these are from drive.google.com that gets downloaded as HTML not PDF.
+# out[grep("drive.google", d$u)] %in% gsub("file '|'$", "", html)
+# html is defined in checkPDFXML.R
+
 u = "https://www.cde.ca.gov/fg/aa/lc/calcaplinks1718.asp"
 tt = getURLContent(u)
 doc = htmlParse(I(tt))
@@ -13,7 +22,6 @@ county = xpathSApply(doc, "//table/tr/td[1]", xmlValue)
 d = data.frame(district = names(lnks), url = lnks, county = county, stringsAsFactors = FALSE)
 
 d$district = gsub("\\r\\n", " ", d$district)
-
 d$district = gsub(" +", " ", d$district)
 
 #d$u = gsub("%20", " ", d$u)
@@ -35,15 +43,23 @@ ans = mapply(function(u, f) {
             0L
        }, d$u, out)
 
+# Which ones didn't we get
 b = !(file.exists(out))
 table(b)
 
+d$got = !b
+saveRDS(d, "2017_18Status.rds")
+
+# See checkPDFXML.R for the file types.
+
+
+#########
+
 setdiff(d[b, 2], "")
 
+###############
 
 dw = lapply(setdiff(d[b, 2], ""), function(x) try(download.file(x, "bob.pdf")))
 table(sapply(dw, class))
 
-d$got = !b
-saveRDS(d, "2017_18Status.rds")
 
