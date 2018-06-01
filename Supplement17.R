@@ -2,6 +2,52 @@ library(XML)
 library(ReadPDF)
 invisible(sapply(list.files("~/DSIProjects/ReadPDF/R", pattern = "\\.R$", full = TRUE), source))
 
+supp17Text =
+function(page, bbr = getBBox(getNodeSet(page, ".//rect"), TRUE),
+         textNodes = getNodeSet(page, ".//text"),
+         bb = getBBox2(textNodes, TRUE),
+         asNodes = TRUE)
+{
+    #XXX Do rotated.
+    h = bbr$y1 - bbr$y0
+    i = which.max(h)
+   
+    w = bb$top >= bbr$y0[i] & bb$top + bb$height <= bbr$y1[i]
+    ans = bb[w,]
+    nodes = textNodes[w]
+    if(asNodes)
+        nodes
+    else
+        nodesByLine(nodes, FALSE)
+}
+
+getSupplementalPage =
+function(doc)    
+{
+    doc = as(doc, "PDFToXMLDoc")
+    z = getNodeSet(doc, "//text[starts-with(., 'Estimated Supplemental')]")
+
+    if(length(z) == 0)
+        NULL
+    
+    if(length(z) > 1) {
+        pgs = pageOf(z, TRUE)
+        w = sapply(pgs, function(x) length(getNodeSet(x, ".//rect")) ) > 0
+        if(sum(w) > 1) {
+            h = sapply(pgs, function(x) { tmp = getBBox(x, TRUE); max(abs(tmp$y1 - tmp$y0))} )
+            w = h > 20
+            if(sum(w) > 1)
+                stop("need to distinguish pages further for supplemental data")
+            else if(sum(w) == 0)
+                stop("discarded too many nodes")
+        }
+        ans = pgs[w][[1]]
+    } else
+        ans = pageOf(z[[1]], TRUE)
+
+    ans
+}
+
 suppl17 = 
 function(doc = "2017_18/Palo_Alto_Unified.xml")
 {    
@@ -15,10 +61,11 @@ function(doc = "2017_18/Palo_Alto_Unified.xml")
 
     w = grepl(":$", sapply(z, function(x) xmlValue(x)))
     if(!any(w)) {
-        
-        if(length(z))
-            w = 1  # or can find the one on a page that is not the instruction page.
-        else
+        if(length(z)) {
+            w = sapply(z, isOnDemonstrationPage)
+#browser()            
+            # w = 1  # or can find the one on a page that is not the instruction page.
+        } else
             stop("can't find the text 'Estimated Supplemental'")
     }
 
@@ -50,6 +97,18 @@ rot = 0 # temporary.
     pos$text[w][i]
 }
 
+
+isOnDemonstrationPage =
+function(node)
+{
+    p = xmlParent(node)
+
+    return(length(getNodeSet(p, ".//rect")) > 0)
+    
+    nodes = getNodeSet(p, ".//text[starts-with(., 'Demonstration')]")
+    length(nodes) > 0
+}
+
 if(FALSE) {
     xx = list.files("2017_18", pattern = "xml$", full = TRUE)
     xx.ans = sapply(xx, function(f) try(suppl17(f)))
@@ -74,8 +133,13 @@ if(FALSE) {
 
     ans = xx.ans[!b]
     amt = XML:::trim(sapply(ans[nvals == 2], `[`, 1))
+      # remove spaces after ,
+    amt = gsub(", +", ",", amt)
+    amt = gsub("\\$Supplemental: +", "", amt)
+    # convert trailing million to e5 - scientific notation.
+    amt = gsub(" million", "e5", amt)        
     table(grepl("^\\$", amt))
-    # 1 not right.
+
     amt[!(grepl("^\\$", amt))]  #
 
     cur = as(amt, "Currency")  # doesn't convert $2.1 million
@@ -85,7 +149,9 @@ if(FALSE) {
     pct = XML:::trim(sapply(ans[nvals == 2], `[`, 2))
     table(grepl("%", pct))
     pct[!grepl("%", pct)] # no %
+    # Tiny bit of work to clean pct before converting    
     pct = as(pct, "Percent")
+
 
     
      # 5 did not give us 2 values.
@@ -123,6 +189,7 @@ if(FALSE) {
 
 
     # Overall
+    # Not counting the xml files we didn't generate. At least 2.
 status =    c(num = length(xx),
       numFailed = sum(b),
       numScanned = sum(!is.na(scan) & scan),
@@ -135,3 +202,8 @@ status =    c(num = length(xx),
      )
 # 92%
 }
+
+
+
+
+
