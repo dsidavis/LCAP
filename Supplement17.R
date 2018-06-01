@@ -33,7 +33,11 @@ function(doc = "2017_18/Palo_Alto_Unified.xml")
     
     pos = getBBox2(getNodeSet(p, ".//text"), TRUE)
 
-rot = 0
+rot = 0 # temporary.
+
+
+    # We can find the colored box that "level" with the text.
+#browser()    
     if(rot == 0)
         w = abs(pos$top - bb$top) < bb$height
     else {
@@ -52,20 +56,21 @@ if(FALSE) {
     b = sapply(xx.ans, is, 'try-error')
     table(b)
 #FALSE  TRUE 
-#  412    37     
+#  735    59 
+
     scan = sapply(xx[b], function(x) tryCatch(isScanned(x), error = function(...) NA))
     table(scan, useNA = "always")
     # The ones we fail on that are not scanned and not a pdftohtml error (NA) are the wrong format
     # from 2016.
-#    FALSE  TRUE  <NA> 
-#       20    15     2 
+#FALSE  TRUE  <NA> 
+#   30    27     2     
 
 
     # Now for the ones we got something. How many  values did we get.
     nvals = sapply(xx.ans[!b], length)
     table(nvals)
-#  0   1   2   3   4 
-#  2   1 163   1   1
+#  0   1   2   3   4   5 
+# 17   3 707   5   2   1 
 
     ans = xx.ans[!b]
     amt = XML:::trim(sapply(ans[nvals == 2], `[`, 1))
@@ -74,7 +79,9 @@ if(FALSE) {
     amt[!(grepl("^\\$", amt))]  #
 
     cur = as(amt, "Currency")  # doesn't convert $2.1 million
-
+    amt[is.na(cur)]
+# Clean up ', ', million $Supplemental: 
+    
     pct = XML:::trim(sapply(ans[nvals == 2], `[`, 2))
     table(grepl("%", pct))
     pct[!grepl("%", pct)] # no %
@@ -88,6 +95,15 @@ if(FALSE) {
 #[3] "2017_18/Borrego_Springs_Unified.xml"                             
 #[4] "2017_18/Cloverdale_Unified.xml"                                  
 #[5] "2017_18/Denair_Unified.xml"
+
+#[6] "2017_18/Durham _Unified.xml"                                     
+#[7] "2017_18/Franklin-McKinley_Elementary.xml"                        
+#[8] "2017_18/Gridley _Unified.xml"                                    
+#[9] "2017_18/Jamul-Dulzura_Union_Elementary.xml"                      
+#10] "2017_18/Kashia_Elementary.xml"                                   
+#11] "2017_18/Laguna_Beach_Unified.xml"                                
+#12] "2017_18/Larkspur-Corte_Madera.xml"                            rotated
+#13] "2017_18/Los_Alamitos_Unified.xml"                       narrow text means on a different line than value.
 
     # Alpine Values in box are on 2 lines. Mid point rather than top.
     # Bangor - page is narrower and the text is taller. Need to work with mid point, not top.
@@ -104,4 +120,18 @@ if(FALSE) {
 #                                                              1 
 #                                     2017_18/Denair_Unified.xml 
 #                                                              3     
+
+
+    # Overall
+status =    c(num = length(xx),
+      numFailed = sum(b),
+      numScanned = sum(!is.na(scan) & scan),
+      numProc = length(nvals),
+      pctProc = length(nvals)/length(xx),
+      ok = sum(nvals == 2),
+      notOk = sum(nvals != 2),
+      pctOk = sum(nvals == 2)/length(nvals)      ,
+      overallOk = sum(nvals == 2)/(length(xx) - sum(!is.na(scan) & scan))
+     )
+# 92%
 }
